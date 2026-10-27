@@ -50,7 +50,7 @@ x-v-agent-base: &v-agent-base
     - 'traefik.http.routers.v-agent-top.service=v-agent'
     - 'traefik.http.routers.v-agent-top.middlewares=v-agent-top-redirect'
     - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.regex=^(https?://[^/]+)/app/com\.ictrek\.v-agent/?.*$'
-    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.replacement=$${1}/#/app/app-drawer/com.ictrek.v-agent/v-agent'
+    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.replacement=$${1}/#/app/app-drawer/com.ictrek.v-agent/com-ictrek-v-agent/v-agent'
     - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.permanent=false'
     - "traefik.http.services.v-agent.loadbalancer.server.port=8080"
   healthcheck:

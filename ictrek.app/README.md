@@ -8,6 +8,10 @@ V-Scheduler models visible to the user are refreshed every minute. Chat Completi
 
 V-Office, AI Album, HybRAG and Image Studio are exposed through user-owned Unix sockets, bundled skills and the `vos-apps` MCP server. Their route allowlists preserve the current user's upstream permissions. Each target application must be installed and accept the `com.ictrek.v-agent` OIDC client where audience restrictions apply. Unavailable apps return explicit errors. Other third-party connectors retain their own authorization flows.
 
+AI Album needs an operator to append `com.ictrek.v-agent` to its existing `IMMICH_VOS_AUDIENCE`. For library search/listing, include `asset.read,asset.statistics,album.read,person.read,user.read` in `IMMICH_VOS_PERMISSIONS`, retaining any existing permissions such as `asset.upload`. These keys still belong to the signed-in user; do not enable admin permissions or `asset.download`. Apply these settings through the album deployment configuration and restart its server. Its upload-only default intentionally returns 403 for read operations. Users then open v-agent without supplying album credentials. Preserve these settings when upgrading the album package.
+
+The dashboard's upstream version badge identifies the bundled Octop engine. VOS package versions and updates are managed by the VOS App Store.
+
 ## Build and release
 
 Use architecture-matched hosts, after rsync from the local checkout to `~/dev/repos/v-agent`. Never run Git on build hosts. Run from a build copy under `~/dev/build`:
