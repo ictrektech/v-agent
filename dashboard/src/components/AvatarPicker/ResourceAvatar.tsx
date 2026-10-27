@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { useAuthImageSrc } from "../../hooks/useAuthImageSrc";
 import styles from "./AvatarPicker.module.less";
 import type { AvatarPreset, AvatarPresetCatalog } from "./types";
+import { publicUrl } from "../../utils/publicUrl";
 
 export function resolveAvatarPreset(
   presets: AvatarPresetCatalog,
@@ -55,7 +56,15 @@ export function ResourceAvatar({
       {photo ? (
         <img src={src} alt="" />
       ) : portrait ? (
-        <img src={preset.src} alt="" className={styles.previewPortraitImg} />
+        <img
+          src={
+            preset.src?.startsWith("/experts/avatars/")
+              ? publicUrl(preset.src)
+              : preset.src
+          }
+          alt=""
+          className={styles.previewPortraitImg}
+        />
       ) : PresetIcon ? (
         <PresetIcon />
       ) : null}

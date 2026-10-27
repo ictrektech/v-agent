@@ -62,7 +62,26 @@ export function VoiceSettingsPanel() {
         voiceApi.getProviders(),
         voiceApi.getActive(),
       ]);
-      setPresets(presetList);
+      setPresets(
+        import.meta.env.VITE_VOS === "1"
+          ? [
+              ...presetList.filter((preset) => preset.kind === "browser"),
+              ...rows
+                .filter((row) => row.enabled && row.name.startsWith("vos-"))
+                .map(
+                  (row): VoicePreset => ({
+                    id: row.name,
+                    name: String(row.extra.model ?? row.name),
+                    kind: "V-Scheduler",
+                    capability: row.capability,
+                    free: false,
+                    requires_key: false,
+                    description: t("voice.vosManaged"),
+                  }),
+                ),
+            ]
+          : presetList,
+      );
       setProviders(rows);
       setActive(activeVoice);
     } catch (err) {

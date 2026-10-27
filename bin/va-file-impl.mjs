@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Workspace operations for the v-agent drawer, executed as the owning user.
+ * Workspace operations for the v-octop drawer, executed as the owning user.
  *
  * Invoked by `bin/va-file` after `runuser`; never runs as root. Every path is
  * resolved against the workspace root and re-checked after `realpath`, so a
@@ -8,7 +8,7 @@
  * invisible and unreadable: `.vagent` and `.credentials.yaml` live outside the
  * workspace, but a `.env` inside it is still none of the drawer's business.
  *
- * @module v-agent/bin/va-file-impl
+ * @module v-octop/bin/va-file-impl
  */
 
 import { constants, createReadStream, createWriteStream } from 'node:fs';

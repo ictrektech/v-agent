@@ -13,7 +13,7 @@ from typing import Literal
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("v-agent VOS apps")
+mcp = FastMCP("v-Octop VOS apps")
 
 
 class LocalConnection(http.client.HTTPConnection):
@@ -49,7 +49,7 @@ def request(service: str, method: str, path: str, body: dict | None):
 
 @mcp.tool()
 async def vos_api(
-    service: Literal["voffice", "album", "weknora", "image-studio", "photocraft"],
+    service: Literal["voffice", "album", "image-studio", "photocraft"],
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"],
     path: str,
     body: dict | None = None,
@@ -57,7 +57,7 @@ async def vos_api(
     """Call a VOS app as the current user, without asking for credentials.
 
     voffice: GET /api/v1/me or /api/v1/files. album: GET /users/me or /albums.
-    weknora: GET /api/v1/knowledge-bases, POST /api/v1/knowledge-search.
+    HybRAG knowledge retrieval is provided by its automatically connected native connector.
     image-studio: GET /api/v1/models, POST /api/v1/generate.
     photocraft: GET /volumes or /index. Use its dedicated MCP tools to edit.
     Each service proxy enforces its API allowlist and the upstream user's permissions.

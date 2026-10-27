@@ -19,8 +19,9 @@ from octop.api.app import build_app
 from octop.infra.agents.manager import AgentCreateSpec
 from octop.infra.auth.tokens import sign_token
 from octop.infra.server import OctopServer
+from octop.infra.vos import synchronize_hybrag_connector
 
-log = logging.getLogger("v-agent")
+log = logging.getLogger("v-Octop")
 _decision_synced = False
 
 
@@ -176,13 +177,23 @@ async def synchronize(server):
         )
         _decision_synced = True
     user = server.user_manager.get(os.environ.get("VA_USERNAME", "vos"))
+    if not server.services.settings_repo.get("vos_octop_brand_migrated"):
+        for row in registry.list_agents(user.id):
+            updates = {}
+            if row.name == "v-agent":
+                updates["name"] = "v-Octop"
+            if row.system_prompt and "v-agent" in row.system_prompt:
+                updates["system_prompt"] = row.system_prompt.replace("v-agent", "v-Octop")
+            if updates:
+                await registry.update(row.agent_id, **updates)
+        server.services.settings_repo.set("vos_octop_brand_migrated", "true")
     if groups and not registry.list_agents(user.id):
         user = server.user_manager.get(os.environ.get("VA_USERNAME", "vos"))
         await registry.create(
             AgentCreateSpec(
-                name="v-agent",
+                name="v-Octop",
                 user_id=user.id,
-                system_prompt="You are v-agent, the user's VOS assistant. Use the installed VOS skills and MCP tools for platform apps; their credentials are managed for this user. Save deliverables inside your workspace.",
+                system_prompt="You are v-Octop, the user's VOS assistant. Use the installed VOS skills and MCP tools for platform apps; their credentials are managed for this user. Save deliverables inside your workspace.",
             )
         )
 
@@ -226,6 +237,7 @@ async def main():
     await server.user_manager.boot()
     server.services.settings_repo.set("vos_subject", subject)
     await server.user_manager.set_display_name(username, os.environ["VA_DISPLAY_NAME"])
+    await synchronize_hybrag_connector(server.services, server.user_manager.get(username).id)
     try:
         await synchronize(server)
     except Exception:
@@ -251,6 +263,9 @@ async def main():
     async def refresh():
         while True:
             await asyncio.sleep(60)
+            await synchronize_hybrag_connector(
+                server.services, server.user_manager.get(username).id
+            )
             try:
                 await synchronize(server)
                 renew()
@@ -275,7 +290,7 @@ async def main():
     task = asyncio.create_task(refresh())
     try:
         app = build_app(server)
-        app.title = "v-agent API"
+        app.title = "v-Octop API"
         app.version = os.environ.get("VOS_APP_VERSION", "0.0.0")
         await uvicorn.Server(
             uvicorn.Config(

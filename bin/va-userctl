@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Root-side helper for v-agent. The gateway runs it through a fixed-path
+# Root-side helper for v-octop. The gateway runs it through a fixed-path
 # sudoers entry and never touches user directories itself.
 #
 # Every command is idempotent: re-running `ensure` after a container rebuild

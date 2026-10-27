@@ -1,7 +1,7 @@
-id: com.ictrek.v-agent
+id: com.ictrek.v-octop
 name:
-  zh-CN: v-agent
-  en: v-agent
+  zh-CN: v-Octop
+  en: v-Octop
 description:
   zh-CN: 多用户 agent 工作台：每位用户独立的会话、工作区与产物，互不可见。
   en: Multi-user agent workspace with per-user sessions, workspaces, and deliverables.
@@ -13,7 +13,7 @@ arch: [amd64, arm64]
 
 frontend:
   enabled: true
-  basePath: /app/com.ictrek.v-agent
+  basePath: /app/com.ictrek.v-octop
 
 platform:
   version: ">=3.0.0"
@@ -26,7 +26,7 @@ dependencies:
 
 oauth2:
   client:
-    id: com.ictrek.v-agent
+    id: com.ictrek.v-octop
     redirect_uris:
       - https://app.vos-platform.internal/callback
     grant_types: [authorization_code, refresh_token]

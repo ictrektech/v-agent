@@ -6,7 +6,7 @@
  * posts the resulting access token here. This module turns that token into a
  * stable platform identity. It never stores the token.
  *
- * @module v-agent/gateway/vos-auth
+ * @module v-octop/gateway/vos-auth
  */
 
 import { createHash } from 'node:crypto';

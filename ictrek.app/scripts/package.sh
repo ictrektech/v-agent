@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build the pull-mode VOS app tarball for v-agent.
+# Build the pull-mode VOS app tarball for v-octop.
 #
 # Image tags are not baked in here: they are read from the Feishu release table,
 # which `build_image.sh` writes. That keeps "publish an image" and "publish an
 # app" independent — an app release always points at whatever tag is newest for
 # each architecture.
 
-APP_NAME="v-agent"
-APP_ID="com.ictrek.v-agent"
-ROUTER_PAGE_ID="v-agent"
-ROUTER_IFRAME_SRC="/app/com.ictrek.v-agent/?v=__APP_VERSION__"
-FRONTEND_BASE_PATH="/app/com.ictrek.v-agent"
+APP_NAME="v-octop"
+APP_ID="com.ictrek.v-octop"
+ROUTER_PAGE_ID="v-octop"
+ROUTER_IFRAME_SRC="/app/com.ictrek.v-octop/?v=__APP_VERSION__"
+FRONTEND_BASE_PATH="/app/com.ictrek.v-octop"
 # A spreadsheet token only identifies the release table; reading it still needs
 # a tenant token derived from feishu_app_secret. Keeping the default lets a
 # fresh clone package without extra setup, matching v-office.
@@ -33,7 +33,7 @@ PROFILES=(
   "arm|ARM_with_cuda"
 )
 COMPONENTS=(
-  "V_AGENT|v-agent|swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-agent"
+  "V_AGENT|v-octop|swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-octop"
 )
 
 log() { echo "[INFO] $*"; }

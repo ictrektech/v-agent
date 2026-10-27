@@ -33,7 +33,7 @@ Apply the VAI repository instructions together with this module guide. User inst
 
 ## 2. What this is
 
-**v-agent** — the VOS edition of TencentCloud/Octop. The internal Python package remains `octop` for upstream compatibility. Fork origin and synchronization base are recorded in `UPSTREAM`.
+**v-Octop** — the VOS edition of TencentCloud/Octop. The internal Python package remains `octop` for upstream compatibility. Fork origin and synchronization base are recorded in `UPSTREAM`.
 One Python wheel: FastAPI backend + React dashboard + Click CLI.
 No external queue. No required services beyond an LLM provider.
 
@@ -199,7 +199,7 @@ cd dashboard && npx tsc -b             # frontend typecheck (after UI changes)
 make build-frontend                     # dashboard/ → src/octop/dashboard/
 ```
 
-Builds and tests run on the architecture-matched Linux build hosts defined by VAI. Before each remote build/test, rsync the local source to `~/dev/repos/v-agent`; run artifact-producing commands under `~/dev/build`. Git operations stay local.
+Builds and tests run on the architecture-matched Linux build hosts defined by VAI. Before each remote build/test, rsync the local source to `~/dev/repos/v-octop`; run artifact-producing commands under `~/dev/build`. Git operations stay local.
 
 `make install-hooks` enables `.githooks/pre-commit`, which calls `ictrek.app/scripts/verify.sh`. This verifies on the build host and reuses evidence for unchanged source. Run relevant frontend checks in the same Node 22 environment used by the image.
 
@@ -386,7 +386,7 @@ Boundary rules are in [§5](#5-module-boundaries). Additionally:
 2. Verify the changed behavior on the configured build host. Check frontend types/build after UI changes, i18n consistency after locale changes, and real VOS flows before claiming device acceptance.
 3. Commit and push directly to `main` locally. Do not require a PR, `develop`, a release branch, or the upstream PyPI/desktop publication workflow. Preserve unrelated changes.
 4. Update and push the VAI submodule reference after delivering the app source.
-5. Build only affected images with explicit architecture/sheets. Publish independent `v-agent` images and Feishu columns; do not replace v-harness images. Verify publication and recorded tags.
+5. Build only affected images with explicit architecture/sheets. Publish independent `v-Octop` images and Feishu columns; do not replace v-harness images. Verify publication and recorded tags.
 6. Run `ictrek.app/scripts/update_version.sh` locally after image publication. It creates only the VOS trigger tag; GitHub Actions creates the public version, package and App Store publication. Confirm results, then push the final VAI submodule reference.
 
 Upstream publication workflows are retained as `.yml.upstream`. Use `UPSTREAM` to synchronize source without restoring their release policy.

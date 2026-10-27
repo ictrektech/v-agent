@@ -316,6 +316,8 @@ def _instance_to_dict(inst: Any, *, access: GroupAccess | None = None) -> dict[s
         "created_at": inst.created_at,
         "updated_at": inst.updated_at,
     }
+    if config.get("vos_managed") is True:
+        payload["vos_managed"] = True
     if access is not None:
         payload.update(access.visibility(RESOURCE_CONNECTOR, inst.instance_id, shared=shared))
     return payload

@@ -10,7 +10,7 @@ description: "搜索与整理当前用户的 AI 相册（VOS 应用 ai-album/Imm
 所有命令都用同一个入口（绝对路径固定，不要 cd）：
 
 ```bash
-node /opt/v-agent/skills/album/scripts/album.mjs <命令> [参数...]
+node /opt/v-octop/skills/album/scripts/album.mjs <命令> [参数...]
 ```
 
 每个命令输出一个 JSON 对象；失败时退出码非 0，错误在 stderr。
@@ -75,7 +75,7 @@ node /opt/v-agent/skills/album/scripts/album.mjs <命令> [参数...]
 - 语义搜图是第一选择：用户描述画面而不是给文件名时，用 `search`。
 - 筛选条件不确定就先 `explore`（看有哪些城市）或 `albums`（看有哪些分组）。
 - 失败如实转述，不要静默重试：
-  - `401` → 登录状态失效，让用户刷新 v-agent 页面后重试；
+  - `401` → 登录状态失效，让用户刷新 v-Octop 页面后重试；
   - `404` → id 不存在，先 `search`/`albums` 确认；
   - `403` + 提示缺少权限 → 平台侧 `IMMICH_VOS_PERMISSIONS` 未放开，告知用户联系管理员，不要换其他命令绕过；
   - `duplicate` → 内容已存在，如实转述。
@@ -84,7 +84,7 @@ node /opt/v-agent/skills/album/scripts/album.mjs <命令> [参数...]
 
 脚本自己找接入点，不需要你拼地址或密钥：
 
-1. `$HOME/.vagent/album.sock`（v-agent 网关按租户提供的本地能力端点，VOS 令牌与相册密钥都在网关侧）；
+1. `$HOME/.vagent/album.sock`（v-Octop 网关按租户提供的本地能力端点，VOS 令牌与相册密钥都在网关侧）；
 2. 本地调试才用 `ALBUM_URL` + `ALBUM_API_KEY`。
 
 因此**不要**自己 curl 相册服务地址：模型侧拿不到密钥，直连只会 401。

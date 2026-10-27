@@ -1,10 +1,10 @@
 {
-  "id": "/",
-  "name": "Octop",
-  "short_name": "Octop",
-  "description": "Smarter self-hosted AI assistant — multi-user, multi-agent",
-  "start_url": "/",
-  "scope": "/",
+  "id": "/app/com.ictrek.v-octop/",
+  "name": "v-Octop",
+  "short_name": "v-Octop",
+  "description": "Your VOS assistant",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f1117",
@@ -13,29 +13,14 @@
   "lang": "zh-CN",
   "icons": [
     {
-      "src": "/pwa-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/pwa-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "v-octop.png",
+      "sizes": "1254x1254",
       "type": "image/png",
       "purpose": "any"
     }
   ],
-  "categories": ["productivity", "utilities"]
+  "categories": [
+    "productivity",
+    "utilities"
+  ]
 }

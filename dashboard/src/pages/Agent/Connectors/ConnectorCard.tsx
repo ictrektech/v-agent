@@ -17,7 +17,10 @@ export const ConnectorCard = memo(function ConnectorCard({
 }: ConnectorCardProps) {
   const { t } = useTranslation();
   const accent = connectorAccent(entry);
-  const disabled = entry.phase !== "available";
+  const vosHybRag =
+    import.meta.env.VITE_VOS === "1" && entry.kind === "weknora";
+  const disabled = entry.phase !== "available" || vosHybRag;
+  const name = vosHybRag ? "HybRAG" : entry.name;
 
   return (
     <div
@@ -40,9 +43,9 @@ export const ConnectorCard = memo(function ConnectorCard({
           <div className={styles.typeCardTitleCol}>
             <Typography.Text
               className={styles.typeCardTitle}
-              ellipsis={{ tooltip: entry.name }}
+              ellipsis={{ tooltip: name }}
             >
-              {entry.name}
+              {name}
             </Typography.Text>
             <span
               className={styles.categoryChip}
@@ -53,10 +56,16 @@ export const ConnectorCard = memo(function ConnectorCard({
           </div>
         </div>
 
-        <div className={styles.typeCardDesc}>{entry.description}</div>
+        <div className={styles.typeCardDesc}>
+          {vosHybRag ? t("connectors.vosHybRagAuto") : entry.description}
+        </div>
       </div>
 
-      {!disabled ? (
+      {vosHybRag ? (
+        <div className={styles.typeCardFooter}>
+          {t("connectors.vosAutoDetect")}
+        </div>
+      ) : !disabled ? (
         <div className={styles.typeCardFooter}>
           <div className={styles.typeCardHint}>
             {t("connectors.clickToConnect", "点击连接")}

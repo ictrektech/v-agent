@@ -1,4 +1,4 @@
-# Independent v-agent image: no v-harness image is used or overwritten.
+# Independent v-octop image: no v-harness image is used or overwritten.
 ARG BASE_IMAGE=python:3.12-slim-bookworm
 ARG NODE_BASE_IMAGE=node:22-bookworm-slim
 FROM ${NODE_BASE_IMAGE} AS frontend
@@ -7,32 +7,41 @@ WORKDIR /build/dashboard
 COPY dashboard/package*.json ./
 RUN npm ci --registry=${NPM_REGISTRY} --no-audit
 COPY dashboard/ ./
-ENV VITE_BASE_PATH=/app/com.ictrek.v-agent/ VITE_VOS=1 NODE_OPTIONS=--max-old-space-size=4096
+ENV VITE_BASE_PATH=/app/com.ictrek.v-octop/ VITE_VOS=1 NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
 FROM ${BASE_IMAGE}
 ARG APT_MIRROR=mirrors.huaweicloud.com
-ARG GIT_COMMIT=unknown
-LABEL org.opencontainers.image.title="v-agent" org.opencontainers.image.source="https://github.com/ictrektech/v-agent" org.opencontainers.image.revision=${GIT_COMMIT}
 RUN if [ -n "$APT_MIRROR" ]; then sed -i "s@deb.debian.org@${APT_MIRROR}@g" /etc/apt/sources.list.d/debian.sources; fi \
  && apt-get update && apt-get install -y --no-install-recommends curl git ripgrep util-linux passwd bubblewrap fonts-noto-cjk build-essential libffi-dev \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
 COPY --from=frontend /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
-WORKDIR /usr/local/lib/v-agent
+WORKDIR /usr/local/lib/v-octop
 COPY pyproject.toml uv.lock README.md LICENSE ./
 RUN pip install --no-cache-dir --index-url https://pypi.tuna.tsinghua.edu.cn/simple uv && uv venv .venv && uv export --frozen --no-dev --no-emit-project --no-hashes -o /tmp/requirements.txt >/dev/null && uv pip install --python .venv/bin/python --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r /tmp/requirements.txt
+# Use the exact Chromium revision required by the locked Playwright package.
+# /usr is read-only and visible inside every tenant jail; profiles stay private.
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/v-octop/browsers
+ARG PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright
+RUN .venv/bin/python -m playwright install-deps chromium \
+ && (.venv/bin/python -m playwright install chromium \
+     || PLAYWRIGHT_DOWNLOAD_HOST= .venv/bin/python -m playwright install chromium) \
+ && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH" \
+ && rm -rf /var/lib/apt/lists/*
 COPY src/ ./src/
 COPY --from=frontend /build/src/octop/dashboard/ ./src/octop/dashboard/
 RUN uv pip install --python .venv/bin/python --index-url https://pypi.tuna.tsinghua.edu.cn/simple --no-deps -e .
 COPY vos/ ./vos/
-COPY ictrek.app/scripts/verify_runtime.mjs /opt/v-agent/verify_runtime.mjs
-COPY gateway/ /opt/v-agent/gateway/
-COPY bin/ /opt/v-agent/bin/
-COPY skills/ /opt/v-agent/skills/
-RUN chmod 0755 /opt/v-agent/bin/* && mkdir -p /data/users
+COPY ictrek.app/scripts/verify_runtime.mjs /opt/v-octop/verify_runtime.mjs
+COPY gateway/ /opt/v-octop/gateway/
+COPY bin/ /opt/v-octop/bin/
+COPY skills/ /opt/v-octop/skills/
+RUN chmod 0755 /opt/v-octop/bin/* && mkdir -p /data/users
 ENV DATA_ROOT=/data PORT=8080 NODE_ENV=production PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.title="v-Octop" org.opencontainers.image.source="https://github.com/ictrektech/v-agent" org.opencontainers.image.revision=${GIT_COMMIT}
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s CMD node -e "fetch('http://127.0.0.1:8080/__va/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-ENTRYPOINT ["/opt/v-agent/bin/entrypoint"]
+ENTRYPOINT ["/opt/v-octop/bin/entrypoint"]

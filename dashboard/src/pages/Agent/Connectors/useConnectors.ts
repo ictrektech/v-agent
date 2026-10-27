@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import {
   connectorsApi,
   type ConnectorCatalogEntry,
@@ -14,7 +15,7 @@ const EMPTY = {
 export function useConnectorInstances() {
   const { t } = useTranslation();
 
-  const { data, loading, refresh } = useAsyncResource(
+  const { data, loading, refresh, setData } = useAsyncResource(
     EMPTY,
     async () => {
       const [cat, inst] = await Promise.all([
@@ -26,6 +27,19 @@ export function useConnectorInstances() {
     [],
     { errorFallback: t("connectors.loadFailed"), t, logLabel: "Connectors" },
   );
+
+  useEffect(() => {
+    if (import.meta.env.VITE_VOS !== "1") return;
+    const timer = setInterval(() => {
+      void connectorsApi
+        .listInstances()
+        .then((instances) => {
+          setData((previous) => ({ ...previous, instances }));
+        })
+        .catch(() => undefined);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [setData]);
 
   return {
     catalog: data.catalog,

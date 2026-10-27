@@ -1,5 +1,5 @@
 /**
- * v-agent gateway: VOS SSO front door and per-user Octop reverse proxy.
+ * v-Octop gateway: VOS SSO front door and per-user Octop reverse proxy.
  *
  * Request flow:
  *   1. An unauthenticated document request receives a bootstrap page that runs
@@ -10,7 +10,7 @@
  *      the browser Cookie replaced by the instance's own Octop cookie and Host
  *      rewritten to `127.0.0.1:<port>`.
  *
- * @module v-agent/gateway/server
+ * @module v-octop/gateway/server
  */
 
 import { createHash } from 'node:crypto';
@@ -25,7 +25,7 @@ import {
   statWorkspace,
   uploadWorkspaceFile,
 } from './files.mjs';
-import { ensureInstance, stopAll, userPaths } from './instances.mjs';
+import { ensureInstance, runUserHelper, stopAll, userPaths } from './instances.mjs';
 import {
   accessTokenFor,
   closeOfficeCapabilities,
@@ -63,11 +63,11 @@ const HOST = process.env.HOST ?? '0.0.0.0';
 const USERS_FILE = process.env.USERS_FILE ?? join(DATA_ROOT, 'users.json');
 const STATE_FILE = process.env.STATE_FILE ?? join(DATA_ROOT, 'state-instances.json');
 const SECRET_FILE = process.env.SECRET_FILE ?? join(DATA_ROOT, 'session-secret');
-const USER_HELPER = process.env.USER_HELPER ?? '/opt/v-agent/bin/va-userctl';
-const CLIENT_ID = process.env.VOS_OIDC_CLIENT_ID ?? 'com.ictrek.v-agent';
+const USER_HELPER = process.env.USER_HELPER ?? '/opt/v-octop/bin/va-userctl';
+const CLIENT_ID = process.env.VOS_OIDC_CLIENT_ID ?? 'com.ictrek.v-octop';
 const SCOPE = process.env.VOS_OIDC_SCOPE ?? 'openid profile email';
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS ?? 12 * 60 * 60 * 1_000);
-const APP_BASE_PATH = process.env.APP_BASE_PATH ?? '/app/com.ictrek.v-agent';
+const APP_BASE_PATH = process.env.APP_BASE_PATH ?? '/app/com.ictrek.v-octop';
 const MAX_AUTH_BODY = 8 * 1024;
 // Standalone debugging escape hatch, mirroring V_OFFICE_AUTH_DISABLED: skip
 // VOS entirely and sign in as one local user. Never enable it on VOS.
@@ -158,7 +158,7 @@ async function readJsonBody(req) {
 const BOOTSTRAP = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>v-agent</title>
+<title>v-Octop</title>
 <style>body{margin:0;height:100vh;display:grid;place-items:center;background:#0b0d10;color:#c8ccd4;font:14px/1.7 system-ui,sans-serif}
 #m{opacity:.8}#e{color:#e06c75;max-width:34rem;text-align:center;white-space:pre-wrap}</style>
 </head><body><div id="m">正在接入平台身份…</div><div id="e"></div>
@@ -227,7 +227,7 @@ async function bridge(){
   return null;
 }
 function fail(m){
-  document.getElementById('m').textContent='无法进入 v-agent';
+  document.getElementById('m').textContent='无法进入 v-Octop';
   document.getElementById('e').textContent=m;
 }
 async function authorize(cfg){
@@ -616,13 +616,13 @@ async function handleControl(req, res, url) {
         ...typeof body.refresh_token === 'string' && body.refresh_token ? { refresh: body.refresh_token } : {},
         expiresAt: expiryFromToken(accessToken, Number(body.expires_in)),
       });
+      await startCapabilities(record);
       await ensureInstance({
         record,
         dataRoot: DATA_ROOT,
         statePath: STATE_FILE,
         userHelper: USER_HELPER,
       });
-      await startCapabilities(record);
       const value = signSession({
         subject: record.subject,
         namespace: record.namespace,
@@ -699,6 +699,7 @@ async function startCapabilities(record) {
     home: userPaths(DATA_ROOT, record.namespace).home,
     userHelper: USER_HELPER,
   };
+  await runUserHelper(USER_HELPER, ['ensure', record.linuxName, String(record.uid), options.home]);
   const settled = await Promise.allSettled([
     ensureAppCapabilities(options),
     ensurePhotocraftCapability(options),
@@ -722,13 +723,13 @@ async function instanceFor(session) {
   // Always read the runtime's renewed token through ensureInstance.
   const record = await findUser(USERS_FILE, session.subject);
   if (!record) return undefined;
+  await startCapabilities(record);
   const instance = await ensureInstance({
     record,
     dataRoot: DATA_ROOT,
     statePath: STATE_FILE,
     userHelper: USER_HELPER,
   });
-  await startCapabilities(record);
   return instance;
 }
 
@@ -911,7 +912,7 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`v-agent gateway listening on ${HOST}:${String(PORT)}`);
+  console.log(`v-Octop gateway listening on ${HOST}:${String(PORT)}`);
 });
 
 /**

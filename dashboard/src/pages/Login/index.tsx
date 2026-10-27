@@ -273,10 +273,10 @@ export default function LoginPage() {
         <img
           src={
             isDark
-              ? publicUrl("v-agent.png")
-              : publicUrl("v-agent.png")
+              ? publicUrl("v-octop.png")
+              : publicUrl("v-octop.png")
           }
-          alt="Octop"
+          alt="v-Octop"
           style={{
             height: 48,
             width: "auto",

@@ -23,8 +23,8 @@ interface HeaderProps {
 export default function Header({ onToggle, isMobile }: HeaderProps) {
   const { isDark } = useTheme();
   const mobileLogoSrc = isDark
-    ? publicUrl("v-agent.png")
-    : publicUrl("v-agent.png");
+    ? publicUrl("v-octop.png")
+    : publicUrl("v-octop.png");
 
   if (!isMobile) return null;
 

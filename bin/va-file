@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Root-side file assistant for the v-agent drawer.
+# Root-side file assistant for the v-octop drawer.
 #
 # The gateway holds zero permission on user data: this helper is the only path
 # into a workspace. Root validates the account name and the directory shape,
@@ -16,7 +16,7 @@ set -euo pipefail
 
 DATA_ROOT="${DATA_ROOT:-/data}"
 NAME_RE='^va-[0-9a-f]{8}$'
-IMPL="/opt/v-agent/bin/va-file-impl.mjs"
+IMPL="/opt/v-octop/bin/va-file-impl.mjs"
 
 die() { printf 'va-file: %s\n' "$*" >&2; exit 1; }
 

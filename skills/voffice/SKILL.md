@@ -10,7 +10,7 @@ description: "读写当前用户在 VOS「我的文档」里的办公文档（V-
 所有命令都用同一个入口（绝对路径固定，不要 cd）：
 
 ```bash
-node /opt/v-agent/skills/voffice/scripts/voffice.mjs <命令> [参数...]
+node /opt/v-octop/skills/voffice/scripts/voffice.mjs <命令> [参数...]
 ```
 
 每个命令输出一个 JSON 对象；失败时退出码非 0，错误在 stderr。
@@ -96,7 +96,7 @@ node /opt/v-agent/skills/voffice/scripts/voffice.mjs <命令> [参数...]
 - 文件名不要带路径或 `..`；中文、空格由脚本负责编码，不要手动编码。
 - 云端是扁平结构，没有目录、没有移动/复制、没有分享链接、没有历史版本，不要承诺这些。
 - 失败就如实转述，不要静默重试：
-  - `401` → VOS 登录令牌过期，让用户刷新 v-agent 页面后重试；
+  - `401` → VOS 登录令牌过期，让用户刷新 v-Octop 页面后重试；
   - `404` → 当前用户目录下没有这个文件，先 `list` 确认名字；
   - `409` → 目标名已存在，或文档在别的窗口被改过，先与用户确认覆盖/改名；
   - `413` → 超过 100 MB；
@@ -107,7 +107,7 @@ node /opt/v-agent/skills/voffice/scripts/voffice.mjs <命令> [参数...]
 
 脚本自己找接入点，不需要你拼地址或令牌：
 
-1. `$HOME/.vagent/voffice.sock`（v-agent 网关按租户提供的本地能力端点，鉴权由网关完成）；
+1. `$HOME/.vagent/voffice.sock`（v-Octop 网关按租户提供的本地能力端点，鉴权由网关完成）；
 2. 本地调试时才用 `V_OFFICE_URL` + `V_OFFICE_BEARER_TOKEN`。
 
 因此**不要**自己 `curl` v-office 的地址：模型侧拿不到令牌，直连只会 401。

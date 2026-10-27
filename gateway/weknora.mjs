@@ -15,7 +15,7 @@
  * unreachable from an agent — `/knowledge/:id/download` in particular must
  * never pass, because it hands out the original file.
  *
- * @module v-agent/gateway/weknora
+ * @module v-octop/gateway/weknora
  */
 
 import { createServer, request as httpRequest } from 'node:http';
@@ -33,11 +33,11 @@ const PROBE_TIMEOUT_MS = 2_000;
 const RETRY_AFTER_FAILURES = 3;
 const EXCHANGE_TIMEOUT_MS = 15_000;
 /**
- * How long an exchanged bearer is reused. HybRAG issues hour-long tokens and
- * VOS access tokens last the same, so refreshing well inside that window keeps
- * a request from racing the expiry.
+ * How long an exchanged bearer is reused. HybRAG tokens pin the active area at exchange time. Refreshing each minute
+ * follows the current user area without exposing either bearer to the agent.
  */
-const EXCHANGE_TTL_MS = 45 * 60_000;
+// Follow HybRAG's current-area preference after a workspace switch.
+const EXCHANGE_TTL_MS = 60_000;
 
 /**
  * Where a deployment can name the knowledge-base address without its env.
@@ -259,7 +259,7 @@ async function forward(namespace, req, res, path = new URL(req.url ?? '/', 'http
   if (token === undefined && path !== '/health') {
     json(res, 401, {
       error: 'vos-token-unavailable',
-      message: 'VOS 登录令牌缺失或已过期，请在 v-agent 页面刷新后重试',
+      message: 'VOS 登录令牌缺失或已过期，请在 v-Octop 页面刷新后重试',
     });
     return;
   }
@@ -347,7 +347,7 @@ async function start(options) {
 /**
  * Serve one `/__va/weknora/<rest>` browser request.
  *
- * The browser authenticates with its own v-agent cookie and cannot open the
+ * The browser authenticates with its own v-octop cookie and cannot open the
  * tenant socket, so the client-side pieces reach the same upstream through this
  * path.
  * @param {string} namespace

@@ -37,6 +37,7 @@ export function ConnectorInstanceCard({
   const ownerLabel =
     instance.owner_display_name || instance.owner_username || "";
   const editable =
+    !instance.vos_managed &&
     instance.can_manage &&
     (catalogEntry != null || (instance.kind === "custom-mcp" && isOwner));
 
@@ -124,22 +125,26 @@ export function ConnectorInstanceCard({
         </div>
 
         <div className={styles.typeCardDesc}>
-          {instance.description ||
-            catalogEntry?.description ||
-            catalogEntry?.name ||
-            instance.kind}
+          {instance.vos_managed
+            ? t("connectors.vosHybRagAuto")
+            : instance.description ||
+              catalogEntry?.description ||
+              catalogEntry?.name ||
+              instance.kind}
         </div>
       </div>
 
       <div className={styles.typeCardFooter}>
         <div className={styles.typeCardHint}>
-          {!instance.has_credentials
+          {instance.vos_managed
+            ? t("connectors.vosAutoConnected")
+            : !instance.has_credentials
             ? t("connectors.noCredentials", "缺少凭证")
             : editable
             ? t("connectors.clickToManage", "点击管理连接")
             : t("connectors.sharedReadonly", "共享连接器，仅所有者可管理")}
         </div>
-        {instance.can_manage ? (
+        {instance.can_manage && !instance.vos_managed ? (
           <div
             className={styles.instanceCardActions}
             onClick={(e) => e.stopPropagation()}

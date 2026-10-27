@@ -440,6 +440,7 @@ def test_gateway_weknora_tools_and_search(monkeypatch: pytest.MonkeyPatch):
         body={"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
     )
     assert [tool["name"] for tool in listed["result"]["tools"]] == [
+        "list_documents",
         "list_knowledge_bases",
         "search",
         "read_document",

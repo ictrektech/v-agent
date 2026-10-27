@@ -1318,8 +1318,16 @@ export default function KnowledgeBasesPage() {
   };
 
   const openSettings = () => {
-    const selectedModel = capability?.selected_model || undefined;
-    const selectedBackend = capability?.backend ?? "onnx";
+    // Keep a working legacy index unchanged; new/unconfigured VOS indexes use
+    // the account-scoped Scheduler providers instead of downloading ONNX models.
+    const useVosRemote =
+      import.meta.env.VITE_VOS === "1" && !capability?.prerequisites_ok;
+    const selectedModel = useVosRemote
+      ? undefined
+      : capability?.selected_model || undefined;
+    const selectedBackend = useVosRemote
+      ? "remote"
+      : capability?.backend ?? "onnx";
     onnxExpandedRef.current = false;
     setOnnxExpanded(false);
     setFeatureEnabledDraft(Boolean(capability?.feature_enabled));
@@ -1333,6 +1341,13 @@ export default function KnowledgeBasesPage() {
     setFeatureModalOpen(true);
     void (async () => {
       const options = await loadEmbeddingOptions(false);
+      if (useVosRemote) {
+        setFeatureProviderId(
+          options?.remote.find(
+            (provider) => provider.provider_name === "vos-embeddings",
+          )?.provider_id,
+        );
+      }
       const selectedInCatalog = Boolean(
         selectedModel &&
           options?.onnx.some((model) => model.id === selectedModel),
@@ -3502,9 +3517,15 @@ export default function KnowledgeBasesPage() {
                   setFeatureModel(undefined);
                 }}
               >
-                <Radio value="onnx">{t("knowledgeBases.localOnnx")}</Radio>
+                {(import.meta.env.VITE_VOS !== "1" ||
+                  (capability?.backend === "onnx" &&
+                    capability.prerequisites_ok)) && (
+                  <Radio value="onnx">{t("knowledgeBases.localOnnx")}</Radio>
+                )}
                 <Radio value="remote">
-                  {t("knowledgeBases.remoteEmbedding")}
+                  {import.meta.env.VITE_VOS === "1"
+                    ? "V-Scheduler"
+                    : t("knowledgeBases.remoteEmbedding")}
                 </Radio>
               </Radio.Group>
               {featureBackend === "remote" ? (

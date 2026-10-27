@@ -282,6 +282,7 @@ export default function ChatInputActionsRow({
   };
   /** Plus-button menu (model / skills / …). */
   const [overflowPopoverOpen, setOverflowPopoverOpen] = useState(false);
+  const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
   /** Picker panel opened from a plus-menu item. */
   const [compactPicker, setCompactPicker] = useState<CompactPickerKey | null>(
     null,
@@ -401,6 +402,7 @@ export default function ChatInputActionsRow({
   };
 
   const closePlusMenu = () => {
+    setModelPopoverOpen(false);
     setOverflowPopoverOpen(false);
     closeCompactPicker();
   };
@@ -1024,6 +1026,28 @@ export default function ChatInputActionsRow({
             >
               {plusButton}
             </Tooltip>
+          </Popover>
+        )}
+        {import.meta.env.VITE_VOS === "1" && onModelChange && (
+          <Popover
+            trigger="click"
+            placement="topLeft"
+            content={modelMenu}
+            open={modelPopoverOpen}
+            onOpenChange={setModelPopoverOpen}
+            overlayClassName={styles.skillPickerPopover}
+          >
+            <button
+              type="button"
+              className={`${styles.secondaryBtn} ${styles.modelSelectBtn}`}
+              aria-label={t("chat.selectModel")}
+              disabled={!showModelPicker}
+            >
+              <Cpu size={16} />
+              <span>
+                {t("chat.selectModel")} · {selectedModelTriggerLabel}
+              </span>
+            </button>
           </Popover>
         )}
         {onHitlPolicyChange && (

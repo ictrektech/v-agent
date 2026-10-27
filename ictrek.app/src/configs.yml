@@ -25,8 +25,8 @@ configs:
       zh-CN: 容器内存上限
       en: Container memory limit
     description:
-      zh-CN: 整个 v-agent 容器的内存上限，需要覆盖所有在线用户的 Octop 实例，按实际用户数量和任务负载调整。
-      en: Memory limit for the whole v-agent container, shared by every online Octop instance; size it for the actual users and workload.
+      zh-CN: 整个 v-Octop 容器的内存上限，需要覆盖所有在线用户的 Octop 实例，按实际用户数量和任务负载调整。
+      en: Memory limit for the whole v-Octop container, shared by every online Octop instance; size it for the actual users and workload.
     default: 8g
 
   - name: V_AGENT_CPU_LIMIT

@@ -17,7 +17,7 @@ current="$(tr -d '[:space:]' < "$VERSION_FILE")"
 IFS=. read -r major minor patch <<< "$current"
 case "$part" in patch) patch=$((patch+1));; minor) minor=$((minor+1));patch=0;; major) major=$((major+1));minor=0;patch=0;; esac
 version="$major.$minor.$patch"
-tag="vos-v-agent-v$version"
+tag="vos-v-octop-v$version"
 public="v$version"
 for candidate in "$tag" "$public"; do
  if git rev-parse -q --verify "refs/tags/$candidate" >/dev/null; then echo "Tag already exists: $candidate" >&2; exit 1; fi
@@ -29,7 +29,7 @@ for candidate in "$tag" "$public"; do
 done
 printf '%s\n' "$version" > "$VERSION_FILE"
 git add "$VERSION_FILE"
-git commit -m "chore: release VOS v-agent $version"
+git commit -m "chore: release VOS v-octop $version"
 git tag "$tag"
 # Branch and trigger tag are published together; never create the public tag here.
 git push --atomic origin "$branch" "$tag" || { echo 'Push failed; retain the prepared commit/tag and retry that push, without bumping again.' >&2; exit 1; }

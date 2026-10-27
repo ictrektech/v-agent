@@ -14,7 +14,7 @@ export async function releaseStatus(current, { force = false, fetcher = fetch } 
     const release = await response.json();
     const version = String(release.tag_name ?? '').replace(/^v/, '');
     if (!/^\d+\.\d+\.\d+$/.test(version) || release.draft || release.prerelease ||
-      !release.assets?.some(asset => asset.name === `v-agent_${version}_pull.tar`)) throw new Error('No stable VOS package release');
+      !release.assets?.some(asset => asset.name === `v-octop_${version}_pull.tar`)) throw new Error('No stable VOS package release');
     value.latest_version = version;
     const a = version.split('.').map(Number), b = current.split('.').map(Number);
     value.has_update = a.some((n,i) => n > b[i] && a.slice(0,i).every((n,j) => n === b[j]));

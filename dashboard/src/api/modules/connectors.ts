@@ -59,6 +59,7 @@ export interface ConnectorInstance {
   has_credentials: boolean;
   /** When true, chat composer pre-selects this connector. */
   default_open?: boolean;
+  vos_managed?: boolean;
   shared: boolean;
   visibility?: "owner" | "all" | "groups";
   group_ids?: string[];

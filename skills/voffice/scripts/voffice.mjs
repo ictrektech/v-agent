@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { artifactUrl } from '../../artifacts.mjs';
 /**
- * V-Office document CLI for the v-agent agent.
+ * V-Office document CLI for the v-octop agent.
  *
- * The agent never holds a VOS access token. In a v-agent deployment the
+ * The agent never holds a VOS access token. In a v-octop deployment the
  * gateway listens on `$HOME/.vagent/voffice.sock` (0700 directory, 0600 socket,
  * owned by this tenant) and adds the Authorization header itself. The direct
  * HTTP mode exists for local debugging outside the container and is selected
@@ -57,7 +57,7 @@ function resolveTransport() {
   if (explicitSocket || existsSync(socketPath)) {
     if (!existsSync(socketPath)) {
       throw new UsageError(
-        `V-Office 能力端点不存在（${socketPath}）。请在 v-agent 页面重新登录后再试。`,
+        `V-Office 能力端点不存在（${socketPath}）。请在 v-octop 页面重新登录后再试。`,
       )
     }
     return {
@@ -71,7 +71,7 @@ function resolveTransport() {
   if (!base || !token) {
     throw new UsageError(
       '未接入 V-Office：既没有本地能力端点，也没有 V_OFFICE_URL + V_OFFICE_BEARER_TOKEN。'
-        + '这通常意味着当前会话没有完成 VOS 登录；请在 v-agent 页面重新登录。',
+        + '这通常意味着当前会话没有完成 VOS 登录；请在 v-octop 页面重新登录。',
     )
   }
   const url = new URL(base)
@@ -179,7 +179,7 @@ function explain(status, body) {
   }
   switch (status) {
     case 401:
-      return 'VOS 登录令牌缺失或已过期：请在 v-agent 页面刷新（F5）后重试'
+      return 'VOS 登录令牌缺失或已过期：请在 v-octop 页面刷新（F5）后重试'
     case 403:
       return '共享目录不可写，或该操作未被授权'
     case 404:

@@ -37,8 +37,8 @@ export default function VosIdentityPanel() {
         showIcon
         message={
           zh
-            ? "每个 VOS 用户对应一个独立的 v-agent 账号和工作区。请在 VOS 系统设置中管理用户。"
-            : "Each VOS user has a separate v-agent account and workspace. Manage users in VOS system settings."
+            ? "每个 VOS 用户对应一个独立的 v-octop 账号和工作区。请在 VOS 系统设置中管理用户。"
+            : "Each VOS user has a separate v-octop account and workspace. Manage users in VOS system settings."
         }
       />
       {failed ? (

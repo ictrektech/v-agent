@@ -70,7 +70,7 @@ async def serve_calls():
             if not future.done():
                 future.set_exception(
                     RuntimeError(
-                        "PhotoCraft is unavailable; install its VOS MCP-enabled release and refresh v-agent."
+                        "PhotoCraft is unavailable; install its VOS MCP-enabled release and refresh v-octop."
                     )
                 )
 

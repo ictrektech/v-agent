@@ -19,8 +19,8 @@ set -euo pipefail
 DATA_ROOT="${DATA_ROOT:-/data}"
 USERS_ROOT="${DATA_ROOT}/users"
 # Read-only: the tenant's own content is the only writable path besides /tmp.
-SKILLS_ROOT="${BUNDLED_SKILL_DIR:-/opt/v-agent/skills}"
-JAIL_HOSTNAME="${VA_JAIL_HOSTNAME:-v-agent}"
+SKILLS_ROOT="${BUNDLED_SKILL_DIR:-/opt/v-octop/skills}"
+JAIL_HOSTNAME="${VA_JAIL_HOSTNAME:-v-octop}"
 
 die() { printf 'va-jail: %s\n' "$*" >&2; exit 1; }
 

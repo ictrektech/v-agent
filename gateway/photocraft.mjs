@@ -19,7 +19,7 @@
  * * **No key exchange.** Unlike the album capability, the token PhotoCraft
  *   needs *is* the VOS token; there is nothing to trade it for.
  *
- * @module v-agent/gateway/photocraft
+ * @module v-octop/gateway/photocraft
  */
 
 import { createServer, request as httpRequest } from 'node:http';
@@ -140,7 +140,7 @@ export async function handlePhotocraft(namespace, req, res) {
   if (!token) {
     json(res, 401, {
       error: 'vos-token-unavailable',
-      message: 'VOS 登录令牌缺失或已过期，请在 v-agent 页面刷新后重试',
+      message: 'VOS 登录令牌缺失或已过期，请在 v-Octop 页面刷新后重试',
     });
     return;
   }

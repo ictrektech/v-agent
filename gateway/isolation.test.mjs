@@ -29,7 +29,7 @@ test('sessions reject tampering, expiration and another application secret', () 
   assert.equal(verifySession(token + 'x', secret), undefined);
   assert.equal(verifySession(token, Buffer.alloc(32, 2)), undefined);
   assert.equal(verifySession(signSession({ ...payload, expiresAt: 1 }, secret), secret), undefined);
-  assert.match(cookie(SESSION_COOKIE, token), /Path=\/app\/com\.ictrek\.v-agent\//);
+  assert.match(cookie(SESSION_COOKIE, token), /Path=\/app\/com\.ictrek\.v-octop\//);
 });
 test('image API capability rejects settings, host control and unrelated services', () => {
   assert.equal(allowedImageRoute('POST', '/api/v1/generate'), true);

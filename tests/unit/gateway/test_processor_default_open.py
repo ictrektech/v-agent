@@ -332,3 +332,31 @@ async def test_resolve_turn_mcp_servers_raises_when_prepare_fails() -> None:
             explicit=None,
         )
     assert ei.value.code == ErrorCode.CONNECTOR_MCP_LOAD_FAILED
+
+
+@pytest.mark.asyncio
+async def test_vos_capabilities_survive_empty_optional_connector_selection(monkeypatch) -> None:
+    monkeypatch.setenv("VA_SKILLS_DIR", "/opt/v-octop/skills")
+    manager = MagicMock()
+    manager.get_row.return_value = None
+    manager.default_mcp_servers.return_value = []
+    manager.merge_turn_mcp_servers.return_value = []
+    manager.prepare_chat_mcp = AsyncMock(return_value=[])
+    processor = GlobalProcessor(
+        agent_manager=manager,
+        thread_registry=MagicMock(),
+        audit_repo=MagicMock(),
+        agent_repo=MagicMock(),
+        user_repo=MagicMock(),
+        connector_repo=MagicMock(),
+        dispatcher=SlashDispatcher(),
+        usage_repo=None,
+        gateway=None,
+    )
+    names = await processor._resolve_turn_mcp_servers(agent_id="a1", user_id=1, explicit=[])
+    assert names == ["vos-apps", "photocraft"]
+    manager.prepare_chat_mcp.assert_awaited_once_with(
+        "a1",
+        names,
+        connector_user_id=1,
+    )

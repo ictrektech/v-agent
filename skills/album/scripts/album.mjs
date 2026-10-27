@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { artifactUrl } from '../../artifacts.mjs';
 /**
- * AI-album (Immich) CLI for the v-agent agent.
+ * AI-album (Immich) CLI for the v-octop agent.
  *
  * Credential model mirrors the voffice CLI: the agent never holds a key. In a
- * v-agent deployment the gateway listens on `$HOME/.vagent/album.sock`, keeps
+ * v-octop deployment the gateway listens on `$HOME/.vagent/album.sock`, keeps
  * the tenant's VOS token in memory and exchanges it at Immich's
  * `/oauth/vos-exchange`; direct-HTTP mode exists for local debugging only and
  * is selected when `ALBUM_URL` and `ALBUM_API_KEY` are both set.
@@ -60,7 +60,7 @@ function resolveTransport() {
   if (explicitSocket || existsSync(socketPath)) {
     if (!existsSync(socketPath)) {
       throw new UsageError(
-        `AI 相册能力端点不存在（${socketPath}）。请在 v-agent 页面重新登录后再试。`,
+        `AI 相册能力端点不存在（${socketPath}）。请在 v-octop 页面重新登录后再试。`,
       )
     }
     return {
@@ -168,7 +168,7 @@ function explain(status, body) {
   }
   switch (status) {
     case 401:
-      return 'AI 相册登录状态失效：请在 v-agent 页面刷新（F5）后重试'
+      return 'AI 相册登录状态失效：请在 v-octop 页面刷新（F5）后重试'
     case 403:
       return '相册密钥权限不足：需要平台侧调整 IMMICH_VOS_PERMISSIONS'
     case 404:
@@ -534,7 +534,7 @@ async function run(argv) {
       )
     }
     field('deviceAssetId', `va-${checksum.slice(0, 16)}`)
-    field('deviceId', 'v-agent')
+    field('deviceId', 'v-octop')
     field('fileCreatedAt', stats.mtime.toISOString())
     field('fileModifiedAt', stats.mtime.toISOString())
     field('fileSize', String(stats.size))

@@ -24,8 +24,8 @@ export default function VosUpdatePanel() {
         showIcon
         message={
           zh
-            ? "v-agent 通过 VOS 应用商店升级，保留各用户的数据和工作区。"
-            : "Upgrade v-agent through the VOS App Store. User data and workspaces are retained."
+            ? "v-Octop 通过 VOS 应用商店升级，保留各用户的数据和工作区。"
+            : "Upgrade v-Octop through the VOS App Store. User data and workspaces are retained."
         }
       />
       <Descriptions
@@ -51,7 +51,7 @@ export default function VosUpdatePanel() {
                 target="_blank"
                 rel="noreferrer"
               >
-                ictrektech/v-agent Releases
+                v-Octop Releases
               </a>
             ),
           },

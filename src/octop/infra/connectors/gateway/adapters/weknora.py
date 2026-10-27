@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -14,6 +16,20 @@ _MAX_RESULTS = 8
 _MAX_CHUNK_CHARS = 1200
 
 TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "list_documents",
+        "description": "List documents in a visible HybRAG knowledge base, including their indexing status.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "knowledge_base_id": {"type": "string"},
+                "keyword": {"type": "string"},
+                "page": {"type": "integer", "minimum": 1},
+                "page_size": {"type": "integer", "minimum": 1, "maximum": 50},
+            },
+            "required": ["knowledge_base_id"],
+        },
+    },
     {
         "name": "list_knowledge_bases",
         "description": "List WeKnora knowledge bases visible to the configured credential.",
@@ -71,6 +87,8 @@ def list_tools() -> list[dict[str, Any]]:
 
 def _headers(creds: dict[str, Any]) -> dict[str, str]:
     headers = {"Accept": "application/json"}
+    if creds.get("vos_managed") is True and os.environ.get("VA_SKILLS_DIR"):
+        return headers
     api_key = str(creds.get("api_key") or "").strip()
     tenant_id = str(creds.get("tenant_id") or "").strip()
     if api_key:
@@ -90,7 +108,10 @@ def _request(
 ) -> dict[str, Any]:
     base_url = normalize_weknora_base_url(str(creds.get("base_url") or ""))
     try:
-        with httpx.Client(timeout=30.0, follow_redirects=False) as client:
+        transport = None
+        if creds.get("vos_managed") is True and os.environ.get("VA_SKILLS_DIR"):
+            transport = httpx.HTTPTransport(uds=str(Path.home() / ".vagent" / "weknora.sock"))
+        with httpx.Client(timeout=30.0, follow_redirects=False, transport=transport) as client:
             response = client.request(
                 method,
                 f"{base_url}{path}",
@@ -144,6 +165,8 @@ def _clip_passage(item: dict[str, Any]) -> dict[str, Any]:
     content = str(item.get("content") or "")
     clipped = content[:_MAX_CHUNK_CHARS]
     return {
+        "chunk_id": item.get("chunk_id") or item.get("id"),
+        "knowledge_base_id": item.get("knowledge_base_id") or item.get("kb_id"),
         "knowledge_id": item.get("knowledge_id"),
         "knowledge_title": item.get("knowledge_title") or item.get("knowledge_filename"),
         "chunk_index": item.get("chunk_index"),
@@ -224,7 +247,21 @@ def _read_document(creds: dict[str, Any], args: dict[str, Any]) -> dict[str, Any
 
 
 def call_tool(creds: dict[str, Any], name: str, args: dict[str, Any]) -> str:
-    if name == "list_knowledge_bases":
+    if name == "list_documents":
+        kb_id = str(args.get("knowledge_base_id") or "").strip()
+        if not kb_id:
+            raise ValueError("knowledge_base_id is required")
+        result = _request(
+            creds,
+            "GET",
+            f"/knowledge-bases/{quote(kb_id, safe='')}/knowledge",
+            params={
+                "page": max(1, int(args.get("page") or 1)),
+                "page_size": max(1, min(int(args.get("page_size") or 20), 50)),
+                "keyword": str(args.get("keyword") or ""),
+            },
+        )
+    elif name == "list_knowledge_bases":
         result = _list_knowledge_bases(creds)
     elif name == "search":
         result = _search(creds, args)

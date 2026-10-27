@@ -84,7 +84,7 @@ export async function handleScheduler(req, res, path) {
   };
   if (!namespace) return reply(401, { error: { message: 'Invalid inference capability' } });
   const token = await accessTokenFor(namespace);
-  if (!token) return reply(401, { error: { message: 'VOS session expired; refresh v-agent' } });
+  if (!token) return reply(401, { error: { message: 'VOS session expired; refresh v-octop' } });
   if (req.method === 'GET' && path === '/v1/models') return reply(200, { data: (await schedulerCatalog(token)).filter(row => row.categories.includes('chat')) });
   if (req.method === 'GET' && path === '/catalog') return reply(200, { models: await schedulerCatalog(token) });
   const post = ['/v1/chat/completions', '/v1/responses', '/v1/messages', '/text/v1/chat/completions',

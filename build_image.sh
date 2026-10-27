@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and publish the v-agent image.
+# Build and publish the v-octop image.
 #
 # One image serves both architectures; the tag carries the architecture the
 # same way the other ictrek apps do:
-#   swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-agent:amd_YYYYMMDD
-#   swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-agent:arm_YYYYMMDD
+#   swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-octop:amd_YYYYMMDD
+#   swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-octop:arm_YYYYMMDD
 #
 # The Feishu release table records the tag in the service column named
-# `v-agent` on every sheet selected for the target architecture.
+# `v-octop` on every sheet selected for the target architecture.
 
 APP_REGISTRY_PREFIX="swr.cn-southwest-2.myhuaweicloud.com/ictrek"
-IMAGE="${APP_REGISTRY_PREFIX}/v-agent"
-SERVICE_NAME="v-agent"
+IMAGE="${APP_REGISTRY_PREFIX}/v-octop"
+SERVICE_NAME="v-octop"
 # Mirrored into SWR once so repeat builds, and the other architecture's host,
 # never depend on Docker Hub being reachable.
 BASE_IMAGE="python:3.12-slim-bookworm"
@@ -48,7 +48,7 @@ usage() {
   cat <<'EOF'
 Usage: ./build_image.sh [options]
 
-Builds the v-agent image and records its tag in the Feishu release table.
+Builds the v-octop image and records its tag in the Feishu release table.
 
 Options:
   --no-push             Build locally without docker push
@@ -455,7 +455,7 @@ fi
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
   docker run --rm --network vos_default --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
-    --tmpfs /data:rw,mode=0711 --entrypoint node "${IMAGE}:${TAG}" /opt/v-agent/verify_runtime.mjs
+    --tmpfs /data:rw,mode=0711 --entrypoint node "${IMAGE}:${TAG}" /opt/v-octop/verify_runtime.mjs
 fi
 
 if [[ "$PUSH_IMAGES" == "1" ]]; then

@@ -5,7 +5,7 @@ description: Generate or edit images and videos through the current user's VOS I
 
 # Image Studio
 
-Run `node /opt/v-agent/skills/image-studio/scripts/image-studio.mjs help` for exact arguments. This CLI uses the current user's capability socket; no API key or login is needed.
+Run `node /opt/v-octop/skills/image-studio/scripts/image-studio.mjs help` for exact arguments. This CLI uses the current user's capability socket; no API key or login is needed.
 
 1. Inspect `models` and `model <key>` to select an installed model and supported parameters.
 2. Submit `generate` with the requested prompt and model. Use `--input` only for a real downloaded reference file.
@@ -15,4 +15,4 @@ Run `node /opt/v-agent/skills/image-studio/scripts/image-studio.mjs help` for ex
 
 MCP callers can use `vos_api(service="image-studio", method="GET", path="/api/v1/models")` or POST `/api/v1/generate`. The CLI handles multipart uploads and binary downloads.
 
-A 401 requires refreshing v-agent's VOS session. A 403 means the route or current user is not authorized. A 502 means Image Studio is unavailable. Never claim a job succeeded without checking its terminal status and output.
+A 401 requires refreshing v-Octop's VOS session. A 403 means the route or current user is not authorized. A 502 means Image Studio is unavailable. Never claim a job succeeded without checking its terminal status and output.

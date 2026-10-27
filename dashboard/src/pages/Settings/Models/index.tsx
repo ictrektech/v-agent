@@ -1,4 +1,5 @@
 import VosModelCatalog from "./components/VosModelCatalog";
+import VosDecisionSettingsPanel from "./components/VosDecisionSettingsPanel";
 /**
  * Models — admin-only provider management page.
  *
@@ -382,6 +383,8 @@ export default function ModelsPage() {
         <VoiceSettingsPanel />
       ) : modelCategory === "search" ? (
         <SearchSettingsPanel />
+      ) : modelCategory === "decision" && import.meta.env.VITE_VOS === "1" ? (
+        <VosDecisionSettingsPanel />
       ) : modelCategory === "decision" ? (
         <>
           {import.meta.env.VITE_VOS === "1" && (

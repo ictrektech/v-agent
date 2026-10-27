@@ -1679,6 +1679,12 @@ class GlobalProcessor:
             apply_defaults=apply_defaults,
             extra_defaults=extra_defaults,
         )
+        from octop.infra.vos import vos_mcp_server_names  # noqa: PLC0415
+
+        # Product capabilities belong to the current VOS account, not the
+        # composer's optional third-party connector selection. Ask/Plan still
+        # remove MCP tools in stamp_conversation_mode after this step.
+        merged = list(dict.fromkeys([*(merged or []), *vos_mcp_server_names()]))
         if not merged:
             return None
         failed = await self._agent_manager.prepare_chat_mcp(

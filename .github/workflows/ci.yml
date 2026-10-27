@@ -1,6 +1,6 @@
 name: CI
 
-# v-agent is delivered by direct pushes to main.
+# v-octop is delivered by direct pushes to main.
 on:
   push:
     branches: [main]

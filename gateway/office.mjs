@@ -14,7 +14,7 @@
  * 401 with a stable error code so the skill can tell the user to sign in again
  * instead of retrying.
  *
- * @module v-agent/gateway/office
+ * @module v-octop/gateway/office
  */
 
 import { createServer, request as httpRequest } from 'node:http';
@@ -39,7 +39,7 @@ const SESSION_TIMEOUT_MS = 30_000;
 // which is what keeps the capability alive past the access token's TTL without
 // asking the user to sign in again.
 const VOS_TOKEN_URL = process.env.VOS_TOKEN_URL ?? 'http://172.17.0.1:8105/v1000/oauth2/token';
-const VOS_CLIENT_ID = process.env.VOS_OIDC_CLIENT_ID ?? 'com.ictrek.v-agent';
+const VOS_CLIENT_ID = process.env.VOS_OIDC_CLIENT_ID ?? 'com.ictrek.v-octop';
 const REFRESH_TIMEOUT_MS = 8_000;
 
 /** Routes the capability exposes; everything else is refused locally. */
@@ -325,7 +325,7 @@ async function forward(namespace, req, res) {
   if (!token && url.pathname !== '/api/v1/health') {
     json(res, 401, {
       error: 'vos-token-unavailable',
-      message: 'VOS 登录令牌缺失或已过期，请在 v-agent 页面刷新后重试',
+      message: 'VOS 登录令牌缺失或已过期，请在 v-octop 页面刷新后重试',
     });
     return;
   }
@@ -428,7 +428,7 @@ function officeError(status, code, message) {
 export async function listDocuments(namespace) {
   const token = await accessTokenFor(namespace);
   if (!token) {
-    throw officeError(401, 'vos-token-unavailable', 'VOS 登录令牌缺失或已过期，请在 v-agent 页面刷新后重试');
+    throw officeError(401, 'vos-token-unavailable', 'VOS 登录令牌缺失或已过期，请在 v-octop 页面刷新后重试');
   }
   const response = await fetch(`${OFFICE_BASE.origin}${OFFICE_PREFIX}/api/v1/files`, {
     headers: { accept: 'application/json', authorization: `Bearer ${token}` },
@@ -460,7 +460,7 @@ export async function listDocuments(namespace) {
 export async function editorUrlFor(namespace, options) {
   const token = await accessTokenFor(namespace);
   if (token === undefined) {
-    throw officeError(401, 'vos-token-unavailable', 'VOS 登录令牌缺失或已过期，请刷新 v-agent 页面后重试');
+    throw officeError(401, 'vos-token-unavailable', 'VOS 登录令牌缺失或已过期，请刷新 v-octop 页面后重试');
   }
 
   // The storage service builds an absolute address from X-Forwarded-*. Without

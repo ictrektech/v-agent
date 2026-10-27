@@ -39,7 +39,7 @@ afterEach(() => {
 
 it("enters through the VOS gateway session and clears the previous account before mounting", async () => {
   vi.stubEnv("VITE_VOS", "1");
-  localStorage.setItem("v-agent:namespace", "previous-account");
+  localStorage.setItem("v-octop:namespace", "previous-account");
   const request = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({
@@ -60,5 +60,5 @@ it("enters through the VOS gateway session and clears the previous account befor
   expect(clearAuthToken).toHaveBeenCalledOnce();
   expect(checkVosAccount).toHaveBeenCalledWith("current-subject");
   expect(setAuthToken).toHaveBeenCalledWith("own-runtime-token", false);
-  expect(localStorage.getItem("v-agent:namespace")).toBe("current-account");
+  expect(localStorage.getItem("v-octop:namespace")).toBe("current-account");
 });

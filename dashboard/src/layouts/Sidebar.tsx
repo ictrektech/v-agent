@@ -441,8 +441,8 @@ export default function Sidebar({
 
   const isRailCollapsed = collapsed && !isMobile;
   const wordmarkSrc = isDark
-    ? publicUrl("v-agent.png")
-    : publicUrl("v-agent.png");
+    ? publicUrl("v-octop.png")
+    : publicUrl("v-octop.png");
 
   const selectMinimalPane = useCallback(
     (pane: MinimalNavPane, opts?: { expand?: boolean }) => {
@@ -510,8 +510,8 @@ export default function Sidebar({
   const brandInner = (
     <>
       <img
-        src={isRailCollapsed ? publicUrl("v-agent.png") : wordmarkSrc}
-        alt="Octop"
+        src={isRailCollapsed ? publicUrl("v-octop.png") : wordmarkSrc}
+        alt="v-Octop"
         style={{
           height: isRailCollapsed ? 32 : isMobile ? 38 : 36,
           width: isRailCollapsed ? 32 : "auto",

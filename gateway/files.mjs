@@ -5,12 +5,12 @@
  * process that validates the account, drops to that user with `runuser`, and
  * confines the path to `workspace/`. This module only shuttles bytes.
  *
- * @module v-agent/gateway/files
+ * @module v-octop/gateway/files
  */
 
 import { spawn } from 'node:child_process';
 
-const HELPER = process.env.FILE_HELPER ?? '/opt/v-agent/bin/va-file';
+const HELPER = process.env.FILE_HELPER ?? '/opt/v-octop/bin/va-file';
 const DATA_ROOT = process.env.DATA_ROOT ?? '/data';
 
 /**

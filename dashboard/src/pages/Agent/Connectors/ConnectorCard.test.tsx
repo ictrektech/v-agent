@@ -7,11 +7,14 @@
  *     ConnectorInstanceCard.test.tsx; jsdom cannot measure truncation)
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type { ConnectorCatalogEntry } from "../../../api/modules/connectors";
 import { ConnectorCard } from "./ConnectorCard";
+import { fireEvent } from "@testing-library/react";
+
+afterEach(() => vi.unstubAllEnvs());
 
 const LONG_NAME =
   "一个名称特别长的内置连接器用于验证目录卡片标题截断与悬停提示";
@@ -35,6 +38,18 @@ function makeEntry(
 }
 
 describe("<ConnectorCard />", () => {
+  it("automatically detects HybRAG on VOS instead of opening a credential form", () => {
+    vi.stubEnv("VITE_VOS", "1");
+    const configure = vi.fn();
+    render(
+      <ConnectorCard
+        entry={makeEntry({ kind: "weknora" })}
+        onConfigure={configure}
+      />,
+    );
+    fireEvent.click(screen.getByText("HybRAG"));
+    expect(configure).not.toHaveBeenCalled();
+  });
   it("keeps long catalog names ellipsis-enabled so hover shows the full name", () => {
     render(<ConnectorCard entry={makeEntry()} onConfigure={() => undefined} />);
 

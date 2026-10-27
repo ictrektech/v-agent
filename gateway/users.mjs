@@ -6,7 +6,7 @@
  * uid owns the files. `uid` and `port` are allocated once and never reused,
  * so a container rebuild re-adopts the existing volume instead of orphaning it.
  *
- * @module v-agent/gateway/users
+ * @module v-octop/gateway/users
  */
 
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';

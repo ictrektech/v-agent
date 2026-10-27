@@ -13,7 +13,7 @@
  * deployment grants through `IMMICH_VOS_PERMISSIONS`; and the VOS token's
  * audience must be listed in Immich's `IMMICH_VOS_AUDIENCE`.
  *
- * @module v-agent/gateway/album
+ * @module v-octop/gateway/album
  */
 
 import { createServer, request as httpRequest } from 'node:http';
@@ -164,7 +164,7 @@ async function forward(namespace, req, res) {
     if (!key) {
       json(res, 401, {
         error: 'vos-token-unavailable',
-        message: 'VOS 登录令牌缺失或已过期，请在 v-agent 页面刷新后重试',
+        message: 'VOS 登录令牌缺失或已过期，请在 v-octop 页面刷新后重试',
       });
       return;
     }
@@ -195,7 +195,7 @@ async function forward(namespace, req, res) {
         void (async () => {
           const fresh = await keyFor(namespace, { fresh: true });
           if (!fresh) {
-            json(res, 401, { error: 'album-key-unavailable', message: '相册密钥获取失败，请在 v-agent 页面刷新后重试' });
+            json(res, 401, { error: 'album-key-unavailable', message: '相册密钥获取失败，请在 v-octop 页面刷新后重试' });
             resolve();
             return;
           }

@@ -1,13 +1,13 @@
 router-type: flatten
 
 routers:
-  - id: v-agent
+  - id: v-octop
     kind: page
     title:
-      zh-CN: v-agent
-      en: v-agent
+      zh-CN: v-Octop
+      en: v-Octop
     order: 210
-    iframe-src: /app/com.ictrek.v-agent/?v=__APP_VERSION__
+    iframe-src: /app/com.ictrek.v-octop/?v=__APP_VERSION__
     keep-alive: true
     entry-point: true
     embed: true

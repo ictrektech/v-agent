@@ -6,8 +6,13 @@ import { spawn, spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 
 const base = 'http://127.0.0.1:8080';
-const prefix = '/app/com.ictrek.v-agent';
+const prefix = '/app/com.ictrek.v-octop';
 const fixture = createServer((req, res) => {
+  if (req.url === '/browser-fixture') {
+    res.setHeader('content-type', 'text/html');
+    res.end('<title>v-octop browser fixture</title><h1>Ready</h1>');
+    return;
+  }
   res.setHeader('content-type', 'application/json');
   if (req.url.includes('userinfo')) {
     const key = req.headers.authorization?.replace('Bearer ', '');
@@ -17,7 +22,7 @@ const fixture = createServer((req, res) => {
   else res.end(JSON.stringify({ models: [{ id: 'fixture-model', qualified: 'fixture-model', name: 'Fixture model', kind: 'chat', endpoints: ['chat/completions'], capabilities: ['tools', 'vision'] }] }));
 });
 fixture.listen(18090, '127.0.0.1'); await once(fixture, 'listening');
-const gateway = spawn('/opt/v-agent/bin/entrypoint', [], {
+const gateway = spawn('/opt/v-octop/bin/entrypoint', [], {
   env: { ...process.env, VOS_APP_VERSION: '9.8.7', VOS_OIDC_USERINFO_URL: 'http://127.0.0.1:18090/userinfo', V_SCHEDULER_URL: 'http://127.0.0.1:18090', IMAGE_STUDIO_BASE_URL: 'http://127.0.0.1:18090' },
   stdio: ['ignore', 'inherit', 'inherit'],
 });
@@ -42,16 +47,16 @@ try {
     const me = await (await fetch(base + prefix + '/api/auth/me', { headers: { cookie, authorization: 'Bearer spoofed' } })).json();
     assert.equal(me.display_name, access_token, 'gateway must replace browser authorization');
     const html = await (await fetch(base + prefix + '/', { headers: { cookie } })).text();
-    assert.match(html, /<title>v-agent/);
-    assert.match(html, /\/app\/com\.ictrek\.v-agent\/assets\//);
+    assert.match(html, /<title>v-Octop/);
+    assert.match(html, /\/app\/com\.ictrek\.v-octop\/assets\//);
     const agents = await (await fetch(base + prefix + '/api/agents', { headers: { cookie } })).json();
     assert.equal(agents.length, 1, 'V-Scheduler discovery must provision the default assistant');
-    assert.equal(agents[0].name, 'v-agent');
+    assert.equal(agents[0].name, 'v-Octop');
     assert.equal(agents[0].state, 'running', agents[0].last_error ?? 'default assistant did not start');
     const providers = await (await fetch(base + prefix + '/api/providers', { headers: { cookie } })).json();
     assert.deepEqual(providers[0].models[0].input, ['text', 'image'], 'model input modalities must survive Scheduler discovery');
     const schema = await (await fetch(base + prefix + '/api/openapi.json', { headers: { cookie } })).json();
-    assert.equal(schema.info.title, 'v-agent API');
+    assert.equal(schema.info.title, 'v-Octop API');
     assert.equal(schema.info.version, '9.8.7');
     for (const slug of ['album', 'photocraft', 'v-scheduler']) {
       const detail = await fetch(base + prefix + `/api/agents/${agents[0].agent_id}/skills/${slug}`, { headers: { cookie } });
@@ -69,19 +74,43 @@ try {
   assert.notEqual(logins[0].session.access_token, logins[1].session.access_token);
   const users = Object.values(JSON.parse(await readFile('/data/users.json', 'utf8')));
   const [a, b] = users;
+  const browser = spawn('/opt/v-octop/bin/va-jail', [a.linuxName, String(a.uid), `/data/users/${a.namespace}`,
+    '/usr/local/lib/v-octop/.venv/bin/python', '-c', `
+import asyncio
+from pathlib import Path
+from playwright.async_api import async_playwright
+from octop_browser.install import chromium_executable
+async def main():
+    executable = chromium_executable()
+    assert executable and Path(executable).is_file(), 'Preinstalled Chromium is missing'
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(executable_path=executable, headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
+        page = await browser.new_page()
+        await page.goto('http://127.0.0.1:18090/browser-fixture')
+        assert await page.title() == 'v-octop browser fixture'
+        assert await page.locator('h1').inner_text() == 'Ready'
+        await browser.close()
+asyncio.run(main())
+`], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: '/usr/local/share/v-octop/browsers' }, stdio: ['ignore', 'ignore', 'pipe'] });
+  let browserError = '';
+  browser.stderr.on('data', chunk => { browserError += chunk; });
+  const browserDeadline = setTimeout(() => browser.kill('SIGKILL'), 30000);
+  const [browserCode] = await once(browser, 'exit');
+  clearTimeout(browserDeadline);
+  assert.equal(browserCode, 0, 'preinstalled browser must launch inside the tenant jail and load a page: ' + browserError);
   const read = spawnSync('runuser', ['-u', a.linuxName, '--', 'cat', `/data/users/${b.namespace}/.octop/octop.db`]);
   assert.notEqual(read.status, 0, 'another tenant database must be unreadable');
   const crossUser = await fetch(`http://127.0.0.1:${a.port}/api/auth/me`, {
     headers: { authorization: `Bearer ${logins[1].session.access_token}` },
   });
   assert.equal(crossUser.status, 401, 'another tenant token cannot authenticate directly to a runtime');
-  const mcp = spawn('/opt/v-agent/bin/va-jail', [a.linuxName, String(a.uid), `/data/users/${a.namespace}`,
-    '/usr/local/lib/v-agent/.venv/bin/python', '-c', `
+  const mcp = spawn('/opt/v-octop/bin/va-jail', [a.linuxName, String(a.uid), `/data/users/${a.namespace}`,
+    '/usr/local/lib/v-octop/.venv/bin/python', '-c', `
 import asyncio,json,sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 async def main():
-    async with stdio_client(StdioServerParameters(command=sys.executable,args=['/usr/local/lib/v-agent/vos/mcp_server.py'])) as (read,write):
+    async with stdio_client(StdioServerParameters(command=sys.executable,args=['/usr/local/lib/v-octop/vos/mcp_server.py'])) as (read,write):
         async with ClientSession(read,write) as session:
             await session.initialize()
             tools=await session.list_tools()

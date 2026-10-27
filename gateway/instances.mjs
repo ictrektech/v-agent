@@ -7,7 +7,7 @@ import { schedulerEnvironment } from './scheduler.mjs';
 import { provisionPgv } from './pgv.mjs';
 
 const instances = new Map();
-const JAIL = process.env.JAIL_BIN ?? '/opt/v-agent/bin/va-jail';
+const JAIL = process.env.JAIL_BIN ?? '/opt/v-octop/bin/va-jail';
 export function userPaths(dataRoot, namespace) {
   const home = join(dataRoot, 'users', namespace);
   return { home, workspace: join(home, 'workspace'), runtime: join(home, '.vagent', 'runtime-token') };
@@ -38,11 +38,12 @@ export async function ensureInstance(options) {
     await rm(paths.runtime, { force: true });
     const home = `/home/${record.namespace}`;
     const child = spawn(JAIL, [record.linuxName, String(record.uid), paths.home,
-      '/usr/local/lib/v-agent/.venv/bin/python', '/usr/local/lib/v-agent/vos/runtime.py'], {
+      '/usr/local/lib/v-octop/.venv/bin/python', '/usr/local/lib/v-octop/vos/runtime.py'], {
       env: { HOME: home, OCTOP_HOME: `${home}/.octop`, VA_PORT: String(record.port),
         VA_DISPLAY_NAME: record.username, VA_USERNAME: record.username, VA_SUBJECT: record.subject,
-        VOS_APP_VERSION: process.env.VOS_APP_VERSION ?? "unknown", VA_SKILLS_DIR: '/opt/v-agent/skills',
-        PATH: '/usr/local/lib/v-agent/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin',
+        VOS_APP_VERSION: process.env.VOS_APP_VERSION ?? "unknown", VA_SKILLS_DIR: '/opt/v-octop/skills',
+        PLAYWRIGHT_BROWSERS_PATH: '/usr/local/share/v-octop/browsers',
+        PATH: '/usr/local/lib/v-octop/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin',
         LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', ...schedulerEnvironment(record.namespace) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -55,7 +56,7 @@ export async function ensureInstance(options) {
     const deadline = Date.now() + 120000;
     while (Date.now() < deadline) {
       if (spawnError) throw spawnError;
-      if (child.exitCode !== null) throw new Error(`v-agent runtime exited (${child.exitCode}); inspect tenant log`);
+      if (child.exitCode !== null) throw new Error(`v-Octop runtime exited (${child.exitCode}); inspect tenant log`);
       try {
         const token = (await readFile(paths.runtime, 'utf8')).trim();
         const ready = await fetch(`http://127.0.0.1:${record.port}/api/health`, { signal: AbortSignal.timeout(1000) });
@@ -64,7 +65,7 @@ export async function ensureInstance(options) {
       await new Promise(resolve => setTimeout(resolve, 250));
     }
     child.kill('SIGTERM');
-    throw new Error('v-agent runtime start timed out');
+    throw new Error('v-Octop runtime start timed out');
   })();
   entry.starting = starting;
   instances.set(record.namespace, entry);

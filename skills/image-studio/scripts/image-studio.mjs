@@ -13,7 +13,7 @@ import { pipeline } from 'node:stream/promises'
 /** Use the tenant's socket; credentials remain in the gateway. */
 async function capabilityFetch(url, options = {}) {
   const socketPath = join(homedir(), '.vagent', 'image-studio.sock');
-  if (!existsSync(socketPath)) throw new CliError('Image Studio capability unavailable; refresh v-agent');
+  if (!existsSync(socketPath)) throw new CliError('Image Studio capability unavailable; refresh v-octop');
   const request = new Request(url, options);
   const target = new URL(request.url);
   const body = request.body ? Buffer.from(await request.arrayBuffer()) : undefined;
@@ -140,7 +140,7 @@ function readAuthFile(path) {
 function resolveConnection(flags) {
   const authFile = stringFlag(flags, 'auth-file')
     ?? process.env.IMAGE_STUDIO_AUTH_FILE
-    ?? join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'v-agent', 'image-studio.json')
+    ?? join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'v-octop', 'image-studio.json')
   const auth = readAuthFile(authFile)
   const baseUrl = (stringFlag(flags, 'base-url')
     ?? process.env.IMAGE_STUDIO_BASE_URL

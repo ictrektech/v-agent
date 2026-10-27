@@ -3,8 +3,8 @@ import { spawn } from 'node:child_process';
 export async function provisionPgv(record) {
   if (!process.env.PGV_BOOTSTRAP_PASSWORD) return;
   await new Promise((resolve, reject) => {
-    const child = spawn('/usr/local/lib/v-agent/.venv/bin/python',
-      ['/usr/local/lib/v-agent/vos/provision_pgv.py', record.namespace, String(record.uid)],
+    const child = spawn('/usr/local/lib/v-octop/.venv/bin/python',
+      ['/usr/local/lib/v-octop/vos/provision_pgv.py', record.namespace, String(record.uid)],
       { stdio: ['ignore', 'ignore', 'ignore'] });
     const timeout = setTimeout(() => child.kill('SIGKILL'), 15000);
     child.once('error', reject);

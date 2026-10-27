@@ -8,6 +8,7 @@ import styles from "./AvatarPicker.module.less";
 import { ResourceAvatar } from "./ResourceAvatar";
 import type { AvatarPreset, AvatarPresetCatalog } from "./types";
 import { pickImageFile, validateAvatarFile } from "./validate";
+import { publicUrl } from "../../utils/publicUrl";
 
 export function ResourceAvatarPicker({
   imageUrl,
@@ -175,7 +176,14 @@ export function ResourceAvatarPicker({
                   {renderPreset ? (
                     renderPreset({ preset, index, selected })
                   ) : portrait ? (
-                    <img src={preset.src} alt="" />
+                    <img
+                      src={
+                        preset.src?.startsWith("/experts/avatars/")
+                          ? publicUrl(preset.src)
+                          : preset.src
+                      }
+                      alt=""
+                    />
                   ) : PresetIcon ? (
                     <PresetIcon size={plain ? 22 : 18} />
                   ) : null}

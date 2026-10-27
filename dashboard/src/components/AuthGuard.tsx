@@ -7,6 +7,7 @@ import { applyUserLocale } from "../utils/locale";
 import { isNetworkFetchError } from "../utils/networkError";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
 import { checkVosAccount } from "../utils/vosSession";
+import { listenForVosLocale } from "../utils/vosLocale";
 import BootOfflinePanel from "./BootOfflinePanel";
 
 interface AuthGuardProps {
@@ -49,6 +50,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     let cancelled = false;
     let stopVos = () => {};
+    let stopLocale = () => {};
 
     const check = async () => {
       setOffline(false);
@@ -70,9 +72,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             namespace: string;
             subject: string;
           };
-          if (localStorage.getItem("v-agent:namespace") !== session.namespace) {
+          if (localStorage.getItem("v-octop:namespace") !== session.namespace) {
             clearAuthToken();
-            localStorage.setItem("v-agent:namespace", session.namespace);
+            localStorage.setItem("v-octop:namespace", session.namespace);
           }
           stopVos = await checkVosAccount(session.subject);
           if (cancelled) {
@@ -108,7 +110,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         // need to swallow the throw here.
         try {
           const me = await authApi.me();
-          await applyUserLocale(me.locale);
+          if (import.meta.env.VITE_VOS === "1") {
+            stopLocale = listenForVosLocale();
+          } else {
+            await applyUserLocale(me.locale);
+          }
           if (!cancelled) {
             setUser(me);
             setAuthed(true);
@@ -141,6 +147,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return () => {
       cancelled = true;
       stopVos();
+      stopLocale();
     };
   }, [retryKey]);
 

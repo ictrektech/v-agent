@@ -1,16 +1,16 @@
-# v-agent
+# v-Octop
 
 基于 Octop 的 VOS AI 助手。每位用户拥有独立的专家、会话、记忆、数据库和工作区。
 
 ## 使用
 
-1. 在 VOS 中打开 v-agent，平台身份自动接入，无需注册或再次登录。
+1. 在 VOS 中打开 v-Octop，平台身份自动接入，无需注册或再次登录。
 2. 选择默认助手或创建专家，直接描述任务。
 3. 在对话中查看工具执行过程，在专家工作区管理生成的文件。
 
 ## 模型
 
-在 V-Scheduler 中配置模型后，v-agent 每分钟自动刷新当前 VOS 用户可见的模型。支持聊天、Responses 和 Messages 接口，无需填写模型 API Key。视觉模型保留图片输入能力。纯文本补全模型不进入 Agent 工具执行列表。
+在 V-Scheduler 中配置模型后，v-Octop 每分钟自动刷新当前 VOS 用户可见的模型。支持聊天、Responses 和 Messages 接口，无需填写模型 API Key。视觉模型保留图片输入能力。纯文本补全模型不进入 Agent 工具执行列表。
 
 ## VOS 应用
 

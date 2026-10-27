@@ -49,11 +49,11 @@ export default function VosModelCatalog({ category }: { category: string }) {
           message={
             failed
               ? zh
-                ? "无法读取当前用户的模型目录，请刷新 VOS 登录后重试。"
-                : "Could not load your model catalog. Refresh the VOS session and retry."
+                ? "V-Scheduler 模型目录暂时不可用，请稍后刷新，并检查 V-Scheduler 服务状态。"
+                : "The V-Scheduler model catalog is temporarily unavailable. Retry shortly and check the V-Scheduler service status."
               : zh
-              ? "模型与权限来自当前 VOS 用户，无需填写服务地址或密钥。生成和决策通过已安装的 V-Scheduler MCP 工具调用；语音和向量服务自动同步到对应配置。"
-              : "Models and permissions follow your VOS account. No endpoint or API key is needed. Generation and decisions use the installed V-Scheduler MCP tools; voice and embedding providers sync automatically."
+              ? "模型与权限随当前 VOS 账户自动同步，无需填写服务地址或密钥。"
+              : "Models and permissions sync automatically with your VOS account. No endpoint or API key is required."
           }
         />
         {!failed && !visible.length && (

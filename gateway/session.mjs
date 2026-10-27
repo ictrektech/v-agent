@@ -1,11 +1,11 @@
 /**
- * Stateless HMAC session cookie for v-agent.
+ * Stateless HMAC session cookie for v-octop.
  *
  * The cookie never carries a VOS access token: it only names the platform
  * subject and its derived namespace. Revocation is expiry-based; bumping
  * `SESSION_VERSION` invalidates every outstanding cookie.
  *
- * @module v-agent/gateway/session
+ * @module v-octop/gateway/session
  */
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -110,7 +110,7 @@ export function verifySession(value, secret, now = Date.now()) {
  * @returns {string}
  */
 export function cookie(name, value, options = {}) {
-  const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/app/com.ictrek.v-agent/', 'HttpOnly', 'SameSite=Lax'];
+  const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/app/com.ictrek.v-octop/', 'HttpOnly', 'SameSite=Lax'];
   if (options.maxAgeSeconds !== undefined) parts.push(`Max-Age=${String(options.maxAgeSeconds)}`);
   if (options.secure) parts.push('Secure');
   return parts.join('; ');
