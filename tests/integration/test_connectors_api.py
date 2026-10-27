@@ -911,3 +911,22 @@ async def test_oauth_callback_escapes_error_html(env, exchange_error):
     assert response.status_code == 400
     assert payload not in response.text
     assert escape(payload) in response.text
+
+
+async def test_vos_managed_connector_survives_list_serialization(env):
+    c, srv, auth, _ = env
+    user_id = await resolve_user_id(c, auth, "admin")
+    instance_id = new_ulid()
+    srv.services.repos.connector_repo.create(
+        instance_id=instance_id,
+        user_id=user_id,
+        kind="weknora",
+        display_name="HybRAG",
+        mcp_server_name="weknora__" + instance_id,
+        config_json=json.dumps({"vos_managed": True, "default_open": True}),
+    )
+    listed = await c.get("/api/connector-instances", headers=auth)
+    assert listed.status_code == 200
+    row = next(i for i in listed.json() if i["instance_id"] == instance_id)
+    assert row["vos_managed"] is True
+    assert row["default_open"] is True

@@ -482,6 +482,7 @@ class ConnectorService:
                     "mcp_server_name": inst.mcp_server_name,
                     "has_credentials": inst.has_credentials,
                     "default_open": read_default_open(config),
+                    **({"vos_managed": True} if config.get("vos_managed") is True else {}),
                     "shared": inst.shared,
                     "owner_user_id": inst.user_id,
                     "created_at": inst.created_at,
