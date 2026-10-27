@@ -1,3 +1,4 @@
+import VosIdentityPanel from "./VosIdentityPanel";
 import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Group, IdCard, Network, Users } from "lucide-react";
@@ -108,6 +109,14 @@ function OauthTabPanel({ kind }: { kind: OauthAppKind }) {
 }
 
 export default function AdminUsersPage() {
+  return import.meta.env.VITE_VOS === "1" ? (
+    <VosIdentityPanel />
+  ) : (
+    <StandaloneUsersPage />
+  );
+}
+
+function StandaloneUsersPage() {
   const { t } = useTranslation();
   const { allowedTabs, activeTab, forbidden, selectTab } = useGatedSearchTabs({
     tabs: TABS,

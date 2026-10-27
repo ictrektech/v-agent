@@ -1,3 +1,4 @@
+import VosUpdatePanel from "./VosUpdatePanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { App, Collapse, Switch } from "antd";
@@ -148,6 +149,14 @@ function UpgradeGuide() {
 }
 
 export default function UpdateConfig() {
+  return import.meta.env.VITE_VOS === "1" ? (
+    <VosUpdatePanel />
+  ) : (
+    <StandaloneUpdateConfig />
+  );
+}
+
+function StandaloneUpdateConfig() {
   const { t } = useTranslation();
   const { modal } = App.useApp();
   const [status, setStatus] = useState<UpdateStatus | null>(null);

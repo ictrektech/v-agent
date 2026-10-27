@@ -22,7 +22,7 @@ const normalized = value => String(value).trim().toLowerCase().replace(/^\/?(?:v
 /** Select a supported wire API from declared endpoints, then capabilities. */
 export function schedulerModels(payload) {
   if (!payload || !Array.isArray(payload.models)) throw new Error('Invalid V-Scheduler model catalog');
-  return payload.models.flatMap(row => {
+  const models = payload.models.flatMap(row => {
     const endpoints = (row.endpoints ?? []).map(normalized);
     const capabilities = (row.capabilities ?? []).map(normalized);
     let api;
@@ -38,17 +38,38 @@ export function schedulerModels(payload) {
     else if (!endpoints.length && !capabilities.length && normalized(row.kind) === 'unknown' && row.upstream_id) api = 'openai-completions';
     const id = row.qualified ?? row.id;
     if (!api || typeof id !== 'string' || !id) return [];
-    return [{ id, name: row.name ?? id, api, input: capabilities.includes('vision') ? ['text', 'image'] : ['text'] }];
+    const declared = row.input ?? row.input_modalities ?? row.modalities?.input ?? [];
+    const values = [...(Array.isArray(declared) ? declared : []), ...capabilities].map(normalized);
+    const image = values.some(value => ['vision', 'image', 'images', 'image_input', 'multimodal'].includes(value));
+    return [{ id, name: row.name ?? id, api, input: image ? ['text', 'image'] : ['text'], virtual: row.virtual === true }];
   });
+  // Auto routes the user's image requests to compatible visible candidates.
+  const image = models.some(row => !row.virtual && row.input.includes('image'));
+  return models.map(row => row.id === 'auto' && row.virtual && image ? { ...row, input: ['text', 'image'] } : row);
 }
 
 /** Fetch only models visible to this VOS user; management credentials are never used. */
-async function catalog(token) {
+export async function schedulerCatalog(token) {
   const response = await fetch(`${ORIGIN}/api/v1/models`, {
     headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`V-Scheduler model discovery: HTTP ${response.status}`);
-  return schedulerModels(await response.json());
+  const payload = await response.json();
+  const chat = new Map(schedulerModels(payload).map(row => [row.id, row]));
+  return payload.models.map(row => {
+    const id = row.qualified ?? row.id;
+    const endpoints = (row.endpoints ?? []).map(normalized);
+    const capabilities = (row.capabilities ?? []).map(normalized);
+    const categories = [];
+    if (chat.has(id)) categories.push('chat');
+    if (endpoints.includes('embeddings')) categories.push('embedding');
+    if (endpoints.some(e => ['images/generations', 'images/edits', 'videos/generations', 'audio/music/generations'].includes(e))) categories.push('generation');
+    if (endpoints.some(e => e.startsWith('audio/')) && !endpoints.includes('audio/music/generations')) categories.push('voice');
+    if (endpoints.includes('systemone') || capabilities.includes('decision')) categories.push('decision');
+    if (endpoints.some(e => ['search', 'web/search'].includes(e))) categories.push('search');
+    return { id, name: row.name ?? id, kind: row.kind, endpoints, capabilities, categories,
+      ...(chat.get(id) ?? {}) };
+  });
 }
 
 /** Authenticate a process capability and forward only model discovery and inference. */
@@ -64,19 +85,26 @@ export async function handleScheduler(req, res, path) {
   if (!namespace) return reply(401, { error: { message: 'Invalid inference capability' } });
   const token = await accessTokenFor(namespace);
   if (!token) return reply(401, { error: { message: 'VOS session expired; refresh v-agent' } });
-  if (req.method === 'GET' && path === '/v1/models') return reply(200, { data: await catalog(token) });
-  if (req.method !== 'POST' || !['/v1/chat/completions', '/v1/responses', '/v1/messages', '/text/v1/chat/completions'].includes(path)) {
+  if (req.method === 'GET' && path === '/v1/models') return reply(200, { data: (await schedulerCatalog(token)).filter(row => row.categories.includes('chat')) });
+  if (req.method === 'GET' && path === '/catalog') return reply(200, { models: await schedulerCatalog(token) });
+  const post = ['/v1/chat/completions', '/v1/responses', '/v1/messages', '/text/v1/chat/completions',
+    '/v1/embeddings', '/v1/rerank', '/v1/ml/predictions', '/v1/systemone',
+    '/v1/images/generations', '/v1/images/edits', '/v1/images/variations', '/v1/videos/generations',
+    '/v1/audio/transcriptions', '/v1/audio/translations', '/v1/audio/speech', '/v1/audio/music/generations'];
+  const read = /^\/v1\/(?:images|videos)\/[^?]+$/.test(path) ||
+    ['/v1/audio/voices', '/v1/audio/speakers'].includes(path);
+  if (!(req.method === 'POST' && post.includes(path) || req.method === 'GET' && read)) {
     return reply(403, { error: { message: 'Inference route not allowed' } });
   }
   if (path === '/text/v1/chat/completions') return forwardTextCompletion(req, res, token);
   const abort = new AbortController();
   res.once('close', () => abort.abort());
   const response = await fetch(`${ORIGIN}${path}${target.search}`, {
-    method: 'POST', headers: {
-      authorization: `Bearer ${token}`, 'content-type': 'application/json',
+    method: req.method, headers: {
+      authorization: `Bearer ${token}`, 'content-type': req.headers['content-type'] ?? 'application/json',
       ...(req.headers['anthropic-version'] ? { 'anthropic-version': req.headers['anthropic-version'] } : {}),
       ...(req.headers['anthropic-beta'] ? { 'anthropic-beta': req.headers['anthropic-beta'] } : {}),
-    }, body: req, duplex: 'half', signal: abort.signal,
+    }, ...(req.method === 'GET' ? {} : { body: req, duplex: 'half' }), signal: abort.signal,
   });
   res.writeHead(response.status, { 'content-type': response.headers.get('content-type') ?? 'application/json', 'cache-control': 'no-store' });
   if (response.body) await pipeline(Readable.fromWeb(response.body), res);

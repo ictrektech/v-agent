@@ -1,3 +1,4 @@
+import { publicUrl } from "../../../utils/publicUrl";
 /**
  * iconForName — map an expert's ``icon_name`` (a free-form string from the
  * manifest, e.g. ``"cpu"``, ``"trending-up"``, ``"baby"``) to a lucide-react
@@ -178,6 +179,7 @@ export function normalizeAgentScopedApiUrl(url: string): string {
 export function resolveExpertAvatarUrl(iconUrl?: string | null): string | null {
   const url = iconUrl?.trim() || "";
   if (!url) return null;
+  if (url.startsWith("/experts/avatars/")) return publicUrl(url);
   if (url.startsWith("/api/agents/")) {
     return normalizeAgentScopedApiUrl(url);
   }

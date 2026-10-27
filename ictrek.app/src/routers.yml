@@ -1,20 +1,14 @@
+router-type: flatten
+
 routers:
-  - id: com-ictrek-v-agent
-    kind: group
+  - id: v-agent
+    kind: page
     title:
       zh-CN: v-agent
       en: v-agent
     icon: lucide:bot
     order: 210
-    children:
-      - id: v-agent
-        kind: page
-        title:
-          zh-CN: v-agent
-          en: v-agent
-        icon: lucide:bot
-        order: 210
-        iframe-src: /app/com.ictrek.v-agent/?v=__APP_VERSION__
-        keep-alive: true
-        entry-point: true
-        embed: true
+    iframe-src: /app/com.ictrek.v-agent/?v=__APP_VERSION__
+    keep-alive: true
+    entry-point: true
+    embed: true

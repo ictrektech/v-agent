@@ -510,7 +510,7 @@ export default function Sidebar({
   const brandInner = (
     <>
       <img
-        src={isRailCollapsed ? "/pwa-192.png" : wordmarkSrc}
+        src={isRailCollapsed ? publicUrl("v-agent.png") : wordmarkSrc}
         alt="Octop"
         style={{
           height: isRailCollapsed ? 32 : isMobile ? 38 : 36,

@@ -12,3 +12,5 @@ VOS versions are tracked in ictrek.app/VERSION, independently of upstream Python
 VOS gateway and skill adapters derive from ictrektech/v-harness (MIT).
 Their retained license is gateway/LICENSE.v-harness.
 Local upstream remote: git remote add upstream https://github.com/TencentCloud/Octop.git
+
+Additional adaptation reference: ictrektech/v-harness 1363fc734d (VOS 0.1.12), specifically its MIT-licensed per-user PhotoCraft capability proxy and tests. PhotoCraft MCP protocol reference: ictrektech/photocraft 2ede23993 (0.10.0-vos.4), docs/vos-integration.md.

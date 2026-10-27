@@ -22,11 +22,11 @@ if [[ -f "$STAMP_DIR/verified-source" && "$(cat "$STAMP_DIR/verified-source")" =
   echo 'v-agent: current source already passed the remote release checks.'
   exit 0
 fi
-rsync -az --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=ictrek.app/dist ./ "$HOST:dev/repos/v-agent/"
+rsync -az --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard --exclude=ictrek.app/dist ./ "$HOST:dev/repos/v-agent/"
 ssh "$HOST" bash -s <<'REMOTE'
 set -euo pipefail
 mkdir -p "$HOME/dev/build/v-agent-check/source"
-rsync -a --delete --exclude=.git --exclude=.venv --exclude=node_modules "$HOME/dev/repos/v-agent/" "$HOME/dev/build/v-agent-check/source/"
+rsync -a --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard "$HOME/dev/repos/v-agent/" "$HOME/dev/build/v-agent-check/source/"
 cd "$HOME/dev/build/v-agent-check/source"
 # Reuse the locked dependency environment prepared on this build host.
 export UV_NO_SYNC=1

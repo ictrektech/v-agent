@@ -1,3 +1,4 @@
+import VosModelCatalog from "./components/VosModelCatalog";
 /**
  * Models — admin-only provider management page.
  *
@@ -372,23 +373,31 @@ export default function ModelsPage() {
             : []),
         ]}
       />
-      {modelCategory === "generation" ? (
+      {import.meta.env.VITE_VOS === "1" &&
+      ["generation", "search"].includes(modelCategory) ? (
+        <VosModelCatalog category={modelCategory} />
+      ) : modelCategory === "generation" ? (
         <MediaGenerationSettingsPanel />
       ) : modelCategory === "voice" ? (
         <VoiceSettingsPanel />
       ) : modelCategory === "search" ? (
         <SearchSettingsPanel />
       ) : modelCategory === "decision" ? (
-        <DecisionSettingsPanel
-          openRouterKey={
-            providers.find(
-              (provider) =>
-                provider.api_key &&
-                (provider.name === "openrouter" ||
-                  (provider.base_url ?? "").includes("openrouter.ai")),
-            )?.api_key
-          }
-        />
+        <>
+          {import.meta.env.VITE_VOS === "1" && (
+            <VosModelCatalog category="decision" />
+          )}
+          <DecisionSettingsPanel
+            openRouterKey={
+              providers.find(
+                (provider) =>
+                  provider.api_key &&
+                  (provider.name === "openrouter" ||
+                    (provider.base_url ?? "").includes("openrouter.ai")),
+              )?.api_key
+            }
+          />
+        </>
       ) : modelCategory === "embedding" ? (
         loading ? (
           <LoadingState message={t("models.loadingProviders")} />

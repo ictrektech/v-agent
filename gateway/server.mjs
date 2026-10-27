@@ -53,7 +53,9 @@ import { findUser, upsertUser } from './users.mjs';
 import { VosAuthError, verifyVosToken } from './vos-auth.mjs';
 import { closeWeknoraCapabilities, ensureWeknoraCapability, handleWeknoraControl } from './weknora.mjs';
 import { ensureAppCapabilities, closeAppCapabilities } from './apps.mjs';
-import { handleScheduler } from './scheduler.mjs';
+import { handleScheduler, schedulerCatalog } from './scheduler.mjs';
+import { releaseStatus } from './releases.mjs';
+import { ensurePhotocraftCapability, closePhotocraftCapabilities } from './photocraft.mjs';
 
 const DATA_ROOT = process.env.DATA_ROOT ?? '/data';
 const PORT = Number(process.env.PORT ?? 8080);
@@ -699,6 +701,7 @@ async function startCapabilities(record) {
   };
   const settled = await Promise.allSettled([
     ensureAppCapabilities(options),
+    ensurePhotocraftCapability(options),
     ensureOfficeCapability(options),
     ensureWeknoraCapability(options),
     ensureAlbumCapability(options),
@@ -772,6 +775,28 @@ async function proxyRequest(req, res) {
     return;
   }
   const path = stripPrefix(req.url ?? '/');
+  const pathname = new URL(path, 'http://localhost').pathname;
+  if (pathname.startsWith('/api/update/')) {
+    if (['/api/update/status', '/api/update/check', '/api/update/settings'].includes(pathname)) {
+      json(res, 200, await releaseStatus(process.env.VOS_APP_VERSION ?? '0.0.0', { force: pathname.endsWith('/check') }));
+    } else json(res, 403, { error: 'VOS manages installation and upgrades through its App Store.' });
+    return;
+  }
+  if (pathname === '/__va/model-catalog') {
+    const token = await accessTokenFor(session.namespace);
+    json(res, 200, { models: await schedulerCatalog(token) });
+    return;
+  }
+  if (pathname === '/__va/identity') {
+    const record = await findUser(USERS_FILE, session.subject);
+    json(res, 200, { subject: session.subject, username: record.username, login_method: 'VOS OIDC' });
+    return;
+  }
+  if ((req.method !== 'GET' && /^\/api\/(users|user-roles|user-groups|invites|sso)(?:\/|$)/.test(pathname)) ||
+      /^\/api\/auth\/(?:login|change-password|invite|sso)(?:\/|$)/.test(pathname)) {
+    json(res, 403, { error: 'Accounts and login methods are managed by VOS.' });
+    return;
+  }
   const headers = upstreamHeaders(req, instance.port, instance.cookie);
 
   await new Promise((resolve) => {
@@ -863,7 +888,7 @@ async function proxyUpgrade(req, socket, head) {
 const server = createServer((req, res) => {
   req.url = stripPrefix(req.url ?? '/');
   const url = new URL(req.url ?? '/', 'http://localhost');
-  if (url.pathname.startsWith('/__va/') && url.pathname !== '/__va/runtime-session') {
+  if (url.pathname.startsWith('/__va/') && !['/__va/runtime-session', '/__va/identity', '/__va/model-catalog'].includes(url.pathname)) {
     void handleControl(req, res, url).catch((error) => {
       console.error('control handler failed:', error);
       if (!res.headersSent) json(res, 500, { error: 'internal' });
@@ -897,7 +922,7 @@ function shutdown(signal) {
   console.log(`received ${signal}, stopping instances`);
   server.close();
   const deadline = setTimeout(() => process.exit(1), 8_000);
-  void Promise.allSettled([stopAll(), closeAppCapabilities(), closeOfficeCapabilities(), closeWeknoraCapabilities(), closeAlbumCapabilities()]).finally(() => {
+  void Promise.allSettled([stopAll(), closeAppCapabilities(), closePhotocraftCapabilities(), closeOfficeCapabilities(), closeWeknoraCapabilities(), closeAlbumCapabilities()]).finally(() => {
     clearTimeout(deadline);
     process.exit(0);
   });

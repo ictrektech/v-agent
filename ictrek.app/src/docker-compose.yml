@@ -1,5 +1,9 @@
 x-v-agent-env: &v-agent-env
   PORT: 8080
+  VOS_APP_VERSION: __APP_VERSION__
+  PGV_HOST: shared-pgv
+  PGV_PORT: 5432
+  PGV_BOOTSTRAP_PASSWORD: ${VOS_POSTGRES_PASSWORD:-}
   DATA_ROOT: /data
   APP_BASE_PATH: /app/com.ictrek.v-agent
   VOS_OIDC_CLIENT_ID: com.ictrek.v-agent
@@ -50,7 +54,7 @@ x-v-agent-base: &v-agent-base
     - 'traefik.http.routers.v-agent-top.service=v-agent'
     - 'traefik.http.routers.v-agent-top.middlewares=v-agent-top-redirect'
     - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.regex=^(https?://[^/]+)/app/com\.ictrek\.v-agent/?.*$'
-    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.replacement=$${1}/#/app/app-drawer/com.ictrek.v-agent/com-ictrek-v-agent/v-agent'
+    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.replacement=$${1}/#/app/app-drawer/com.ictrek.v-agent/v-agent'
     - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.permanent=false'
     - "traefik.http.services.v-agent.loadbalancer.server.port=8080"
   healthcheck:

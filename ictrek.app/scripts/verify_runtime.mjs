@@ -18,7 +18,7 @@ const fixture = createServer((req, res) => {
 });
 fixture.listen(18090, '127.0.0.1'); await once(fixture, 'listening');
 const gateway = spawn('/opt/v-agent/bin/entrypoint', [], {
-  env: { ...process.env, VOS_OIDC_USERINFO_URL: 'http://127.0.0.1:18090/userinfo', V_SCHEDULER_URL: 'http://127.0.0.1:18090', IMAGE_STUDIO_BASE_URL: 'http://127.0.0.1:18090' },
+  env: { ...process.env, VOS_APP_VERSION: '9.8.7', VOS_OIDC_USERINFO_URL: 'http://127.0.0.1:18090/userinfo', V_SCHEDULER_URL: 'http://127.0.0.1:18090', IMAGE_STUDIO_BASE_URL: 'http://127.0.0.1:18090' },
   stdio: ['ignore', 'inherit', 'inherit'],
 });
 try {
@@ -52,6 +52,17 @@ try {
     assert.deepEqual(providers[0].models[0].input, ['text', 'image'], 'model input modalities must survive Scheduler discovery');
     const schema = await (await fetch(base + prefix + '/api/openapi.json', { headers: { cookie } })).json();
     assert.equal(schema.info.title, 'v-agent API');
+    assert.equal(schema.info.version, '9.8.7');
+    for (const slug of ['album', 'photocraft', 'v-scheduler']) {
+      const detail = await fetch(base + prefix + `/api/agents/${agents[0].agent_id}/skills/${slug}`, { headers: { cookie } });
+      assert.equal(detail.status, 200, 'product skill detail: ' + slug);
+      assert.ok((await detail.json()).body);
+    }
+    assert.equal(me.username, access_token, 'runtime username must map to the VOS username');
+    const identity = await (await fetch(base + prefix + '/__va/identity', { headers: { cookie } })).json();
+    assert.equal(identity.subject, access_token);
+    assert.equal((await fetch(base + prefix + '/api/users', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' })).status, 403);
+
     logins.push({ cookie, session });
   }
   assert.notEqual(logins[0].session.namespace, logins[1].session.namespace);

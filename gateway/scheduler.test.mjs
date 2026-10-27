@@ -97,3 +97,27 @@ test('text completion models support chat responses and split SSE frames', async
   assert.match(stream, /"content":"hello"/);
   assert.match(stream, /data: \[DONE\]/);
 });
+
+test('image declarations and Auto preserve multimodal routing without name guesses', () => {
+  const rows = schedulerModels({models:[
+    {id:'plain', endpoints:['chat_completions']},
+    {id:'declared-input', endpoints:['chat_completions'], input_modalities:['text','image']},
+    {id:'declared-capability', endpoints:['chat_completions'], capabilities:['multimodal']},
+    {id:'auto', virtual:true, endpoints:['chat_completions']},
+  ]});
+  assert.deepEqual(rows[0].input, ['text']);
+  assert.ok(rows.slice(1).every(row => row.input.includes('image')));
+  const textOnly = schedulerModels({models:[{id:'auto',virtual:true,endpoints:['chat_completions']}]});
+  assert.deepEqual(textOnly[0].input,['text']);
+});
+
+test('category discovery retains embeddings and inference routes exclude management', async () => {
+  const catalog = await (await request('/catalog', alice)).json();
+  assert.ok(catalog.models.some(row => row.id === 'registered/embed' && row.categories.includes('embedding')));
+  for (const path of ['/v1/embeddings','/v1/audio/speech','/v1/systemone','/v1/images/generations']) {
+    assert.equal((await request(path,alice,{model:'private/alice',input:'fixture'})).status,200);
+    assert.equal(seen.at(-1).authorization,'Bearer alice-token');
+  }
+  assert.equal((await request('/api/v1/models',alice,{})).status,403);
+  assert.equal((await request('/v1/registrations',alice,{})).status,403);
+});

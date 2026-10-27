@@ -1036,3 +1036,26 @@ async def test_push_workspace_skill_to_package_copies_all_files(env: Any) -> Non
     )
     assert replaced.status_code == 200, replaced.text
     assert (package_root / "workspace-demo" / "scripts" / "run.sh").read_text() == "echo two\n"
+
+
+async def test_vos_product_skill_detail_and_disable_outside_workspace(env, tmp_path, monkeypatch):
+    """The installed card and detail resolve the same read-only product bundle."""
+    c, _srv, auth, aid = env
+    root = tmp_path / "product-skills"
+    skill = root / "vos-fixture" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(
+        "---\nname: vos-fixture\ndescription: VOS fixture\n---\n# Read-only product skill\n"
+    )
+    monkeypatch.setenv("VA_SKILLS_DIR", str(root))
+    detail = await c.get(f"/api/agents/{aid}/skills/vos-fixture", headers=auth)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["kind"] == "builtin"
+    assert "Read-only product skill" in detail.json()["body"]
+    disabled = await c.post(f"/api/agents/{aid}/skills/vos-fixture/disable", headers=auth)
+    assert disabled.status_code == 204, disabled.text
+    detail = await c.get(f"/api/agents/{aid}/skills/vos-fixture", headers=auth)
+    assert detail.json()["enabled"] is False
+    removed = await c.delete(f"/api/agents/{aid}/skills/vos-fixture", headers=auth)
+    assert removed.status_code == 404, removed.text
+    assert skill.exists()

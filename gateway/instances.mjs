@@ -4,6 +4,7 @@ import { createWriteStream } from 'node:fs';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { schedulerEnvironment } from './scheduler.mjs';
+import { provisionPgv } from './pgv.mjs';
 
 const instances = new Map();
 const JAIL = process.env.JAIL_BIN ?? '/opt/v-agent/bin/va-jail';
@@ -32,13 +33,15 @@ export async function ensureInstance(options) {
   const starting = (async () => {
     const paths = userPaths(dataRoot, record.namespace);
     await runUserHelper(userHelper, ['ensure', record.linuxName, String(record.uid), paths.home]);
+    await provisionPgv(record).catch(() => console.warn("PGV provisioning unavailable; this user has no managed PGV backend yet"));
     await mkdir(join(dataRoot, 'logs'), { recursive: true, mode: 0o700 });
     await rm(paths.runtime, { force: true });
     const home = `/home/${record.namespace}`;
     const child = spawn(JAIL, [record.linuxName, String(record.uid), paths.home,
       '/usr/local/lib/v-agent/.venv/bin/python', '/usr/local/lib/v-agent/vos/runtime.py'], {
       env: { HOME: home, OCTOP_HOME: `${home}/.octop`, VA_PORT: String(record.port),
-        VA_DISPLAY_NAME: record.username, VA_SKILLS_DIR: '/opt/v-agent/skills',
+        VA_DISPLAY_NAME: record.username, VA_USERNAME: record.username, VA_SUBJECT: record.subject,
+        VOS_APP_VERSION: process.env.VOS_APP_VERSION ?? "unknown", VA_SKILLS_DIR: '/opt/v-agent/skills',
         PATH: '/usr/local/lib/v-agent/.venv/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin',
         LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8', ...schedulerEnvironment(record.namespace) },
       stdio: ['ignore', 'pipe', 'pipe'],

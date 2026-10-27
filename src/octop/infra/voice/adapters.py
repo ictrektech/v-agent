@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import os
 import struct
 import uuid
 from collections.abc import AsyncIterator
@@ -88,6 +89,9 @@ async def synthesize_browser(_text: str) -> AsyncIterator[bytes]:
 
 async def _guard_voice_base_url(base_url: str) -> None:
     """Reject SSRF: the voice provider base_url must be a public https host."""
+    managed = os.environ.get("VA_SCHEDULER_URL")
+    if managed and base_url == managed.rstrip("/") + "/v1":
+        return  # Product-owned loopback capability; proxy permits inference only.
     await validate_https_url_resolved(f"{base_url}/v1/audio")
 
 

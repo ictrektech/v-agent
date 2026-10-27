@@ -177,6 +177,14 @@ async def _resolve_skill(
         if meta.get("removed"):
             continue
         return manifest_path, kind, body
+    # VOS product skills live on the jail's read-only bundle, outside workspaces.
+    root = os.environ.get("VA_SKILLS_DIR")
+    if root and name and name not in {".", ".."} and "/" not in name and "\\" not in name:
+        product_path = Path(root) / name / "SKILL.md"
+        if product_path.is_file():
+            product_manifest = await asyncio.to_thread(product_path.read_text, encoding="utf-8")
+            _meta, body = parse_frontmatter(product_manifest)
+            return str(product_path), "builtin", body
     return None
 
 
@@ -465,15 +473,23 @@ async def list_skills(
     user: Any = Depends(current_user),
     server: Any = Depends(get_server),
 ) -> list[dict[str, Any]]:
-    await _ctx(agent_id, user=user, as_user=as_user, server=server, owner_only=False)
+    ctx = await _ctx(agent_id, user=user, as_user=as_user, server=server, owner_only=False)
     assert server.app_runtime is not None
-    return cast(
+    rows = cast(
         list[dict[str, Any]],
         await server.app_runtime.agent_registry.list_skill_summaries(
             agent_id,
             locale=resolve_request_locale(request),
         ),
     )
+
+    if os.environ.get("VA_SKILLS_DIR"):
+        for row in rows:
+            slug = str(row.get("slug") or row.get("name") or "")
+            resolved = await _resolve_skill(ctx.workspace, slug)
+            if resolved is not None and resolved[1] == "builtin":
+                row["kind"] = "builtin"
+    return rows
 
 
 class SkillPackageMountBody(BaseModel):

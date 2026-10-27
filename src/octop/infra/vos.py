@@ -19,6 +19,16 @@ def add_vos_capabilities(
         "transport": "stdio",
         "command": sys.executable,
         "args": ["/usr/local/lib/v-agent/vos/mcp_server.py"],
+        "env": {
+            key: os.environ[key]
+            for key in ("HOME", "VA_SCHEDULER_URL", "VA_SCHEDULER_KEY")
+            if key in os.environ
+        },
+    }
+    servers["photocraft"] = {
+        "transport": "stdio",
+        "command": sys.executable,
+        "args": ["/usr/local/lib/v-agent/vos/photocraft_mcp.py"],
         "env": {"HOME": os.environ.get("HOME", "")},
     }
     return [*skills, root], servers
