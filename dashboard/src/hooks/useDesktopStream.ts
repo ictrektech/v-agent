@@ -1,3 +1,4 @@
+import { getWsUrl } from "../api/config";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAuthToken } from "../api/request";
 
@@ -36,9 +37,8 @@ interface DesktopStreamCallbacks {
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_BASE_MS = 1000;
 
-function buildWsUrl(): string {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.host}/api/desktop-stream/ws`;
+export function buildWsUrl(): string {
+  return getWsUrl("/desktop-stream/ws");
 }
 
 function closeSocket(ws: WebSocket): Promise<void> {

@@ -1,3 +1,4 @@
+import { getWsUrl } from "../api/config";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { getAuthToken } from "../api/request";
 import { normalizeUrl } from "../utils/normalizeUrl";
@@ -35,7 +36,7 @@ interface ConnectOptions {
   bridgeConnectionId?: string | null;
 }
 
-function buildWsUrl(
+export function buildWsUrl(
   width: number,
   height: number,
   bridgeConnectionId?: string | null,
@@ -46,8 +47,7 @@ function buildWsUrl(
         bridgeConnectionId,
       )}/browser-stream/ws`
     : "/browser-stream/ws";
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const base = `${protocol}://${window.location.host}/api${path}`;
+  const base = getWsUrl(path);
   const params = new URLSearchParams({
     width: String(width),
     height: String(height),
