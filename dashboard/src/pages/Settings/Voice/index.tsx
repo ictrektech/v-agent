@@ -65,7 +65,7 @@ export function VoiceSettingsPanel() {
       setPresets(
         import.meta.env.VITE_VOS === "1"
           ? [
-              ...presetList.filter((preset) => preset.kind === "browser"),
+              ...presetList,
               ...rows
                 .filter((row) => row.enabled && row.name.startsWith("vos-"))
                 .map(

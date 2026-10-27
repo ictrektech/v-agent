@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 class DecisionServiceResponse(BaseModel):
-    provider: Literal["laya", "jev", "microsoft", "custom"]
+    provider: Literal["laya", "jev", "microsoft", "custom", "scheduler"]
     endpoint: str
     model: str
     api_key_set: bool
@@ -26,7 +26,7 @@ class DecisionServiceResponse(BaseModel):
 
 class DecisionSettingsResponse(BaseModel):
     enabled: bool
-    provider: Literal["laya", "jev", "microsoft", "custom"]
+    provider: Literal["laya", "jev", "microsoft", "custom", "scheduler"]
     endpoint: str
     model: str
     services: list[DecisionServiceResponse]
@@ -40,7 +40,7 @@ class DecisionSettingsResponse(BaseModel):
 
 
 class DecisionServiceBody(BaseModel):
-    provider: Literal["laya", "jev", "microsoft", "custom"]
+    provider: Literal["laya", "jev", "microsoft", "custom", "scheduler"]
     endpoint: str = ""
     model: str = ""
     api_key: str | None = Field(
@@ -51,7 +51,7 @@ class DecisionServiceBody(BaseModel):
 
 class DecisionSettingsBody(BaseModel):
     enabled: bool = False
-    provider: Literal["laya", "jev", "microsoft", "custom"] = "laya"
+    provider: Literal["laya", "jev", "microsoft", "custom", "scheduler"] = "laya"
     endpoint: str = ""
     model: str = ""
     services: list[DecisionServiceBody] | None = Field(
@@ -73,7 +73,7 @@ class DecisionTestBody(BaseModel):
     endpoint: str | None = None
     api_key: str | None = None
     model: str | None = None
-    provider: Literal["laya", "jev", "microsoft", "custom"] | None = None
+    provider: Literal["laya", "jev", "microsoft", "custom", "scheduler"] | None = None
 
 
 def _view(settings: DecisionSettings) -> DecisionSettingsResponse:

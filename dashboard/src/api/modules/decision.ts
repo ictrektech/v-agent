@@ -2,7 +2,7 @@ import i18n from "../../i18n";
 import { getApiUrl } from "../config";
 import { getAuthToken, request } from "../request";
 
-export type DecisionProvider = "laya" | "jev" | "microsoft" | "custom";
+export type DecisionProvider = "laya" | "jev" | "microsoft" | "custom" | "scheduler";
 
 export interface DecisionServiceConfig {
   provider: DecisionProvider;

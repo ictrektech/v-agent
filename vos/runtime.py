@@ -144,14 +144,6 @@ async def synchronize(server):
                 voice_repo.update(current.id, **fields, enabled=True)
             else:
                 voice_repo.create(name=name, **fields)
-    for capability in ("stt", "tts"):
-        key = "active_" + capability + "_provider"
-        marker = "vos_voice_" + capability + "_initialized"
-        candidates = sorted(name for name in seen if name.startswith("vos-" + capability + "-"))
-        if candidates and not server.services.settings_repo.get(marker):
-            if len(candidates) == 1 and server.services.settings_repo.get(key) in (None, "browser"):
-                server.services.settings_repo.set(key, candidates[0])
-            server.services.settings_repo.set(marker, "true")
     for row in voice_repo.list_all():
         if row.name.startswith(("vos-stt-", "vos-tts-")) and row.name not in seen:
             voice_repo.update(row.id, enabled=False)
@@ -160,20 +152,32 @@ async def synchronize(server):
     decisions = [row for row in models if "systemone" in row.get("endpoints", [])]
     endpoint = os.environ["VA_SCHEDULER_URL"] + "/v1/systemone"
     view = registry.decision.load()
-    if decisions and not _decision_synced and view.endpoint in ("", endpoint):
+    if decisions and not _decision_synced:
+        saved = next((item for item in view.services if item.provider == "scheduler"), None)
+        legacy_managed = view.provider == "jev" and view.endpoint == endpoint
+        selected_model = saved.model if saved else (view.model if legacy_managed else "")
+        model_ids = [row["id"] for row in decisions]
+        updates: list[dict[str, object]] = [
+            {
+                "provider": "scheduler",
+                "endpoint": endpoint,
+                "model": selected_model if selected_model in model_ids else model_ids[0],
+                "api_key": os.environ["VA_SCHEDULER_KEY"],
+            }
+        ]
+        if legacy_managed:
+            updates.append({"provider": "jev", "endpoint": "", "model": "", "api_key": ""})
         await registry.save_decision(
             enabled=view.enabled,
-            provider="jev",
-            endpoint=endpoint,
-            model=view.model
-            if view.model in [row["id"] for row in decisions]
-            else decisions[0]["id"],
+            provider="scheduler" if legacy_managed else view.provider,
+            endpoint=view.endpoint,
+            model=view.model,
             skills=view.skills,
             tools=view.tools,
             team=view.team,
             threshold=view.threshold,
             tool_min_count=view.tool_min_count,
-            api_key=os.environ["VA_SCHEDULER_KEY"],
+            services=updates,
         )
         _decision_synced = True
     user = server.user_manager.get(os.environ.get("VA_USERNAME", "vos"))

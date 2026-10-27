@@ -686,13 +686,27 @@ function upstreamHeaders(req, port, instanceCookie) {
   return headers;
 }
 
+/** @type {Map<string, Promise<void>>} */
+const capabilityStarts = new Map();
+
 /**
  * Give one tenant its capability sockets. Idempotent; failures are logged
  * rather than fatal so a broken upstream never blocks sign-in.
  * @param {import('./users.mjs').UserRecord} record
  * @returns {Promise<void>}
  */
-async function startCapabilities(record) {
+function startCapabilities(record) {
+  const existing = capabilityStarts.get(record.namespace);
+  if (existing) return existing;
+  const starting = initializeCapabilities(record).catch(error => {
+    capabilityStarts.delete(record.namespace);
+    throw error;
+  });
+  capabilityStarts.set(record.namespace, starting);
+  return starting;
+}
+
+async function initializeCapabilities(record) {
   const options = {
     namespace: record.namespace,
     linuxName: record.linuxName,
@@ -709,6 +723,7 @@ async function startCapabilities(record) {
   ]);
   for (const result of settled) {
     if (result.status === 'rejected') {
+      capabilityStarts.delete(record.namespace);
       console.error(`capability for ${record.namespace} failed:`, result.reason);
     }
   }

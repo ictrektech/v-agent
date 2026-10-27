@@ -1321,7 +1321,7 @@ export default function KnowledgeBasesPage() {
     // Keep a working legacy index unchanged; new/unconfigured VOS indexes use
     // the account-scoped Scheduler providers instead of downloading ONNX models.
     const useVosRemote =
-      import.meta.env.VITE_VOS === "1" && !capability?.prerequisites_ok;
+      import.meta.env.VITE_VOS === "1" && !capability?.selected_model && !capability?.provider_id;
     const selectedModel = useVosRemote
       ? undefined
       : capability?.selected_model || undefined;
@@ -3517,16 +3517,8 @@ export default function KnowledgeBasesPage() {
                   setFeatureModel(undefined);
                 }}
               >
-                {(import.meta.env.VITE_VOS !== "1" ||
-                  (capability?.backend === "onnx" &&
-                    capability.prerequisites_ok)) && (
-                  <Radio value="onnx">{t("knowledgeBases.localOnnx")}</Radio>
-                )}
-                <Radio value="remote">
-                  {import.meta.env.VITE_VOS === "1"
-                    ? "V-Scheduler"
-                    : t("knowledgeBases.remoteEmbedding")}
-                </Radio>
+                <Radio value="onnx">{t("knowledgeBases.localOnnx")}</Radio>
+                <Radio value="remote">{t("knowledgeBases.remoteEmbedding")}</Radio>
               </Radio.Group>
               {featureBackend === "remote" ? (
                 <div className={styles.featureFields}>

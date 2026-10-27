@@ -10,6 +10,7 @@ import {
   Input,
   InputNumber,
   Radio,
+  Select,
   Slider,
   Switch,
   Typography,
@@ -38,15 +39,16 @@ const MICROSOFT_MODEL = "microsoft/microsoft-decision-1";
 const LAYA_ENDPOINT = "http://127.0.0.1:8000/v1/systemone";
 const LAYA_AUTO = "auto";
 
-type PresetId = "jev" | "microsoft" | "laya" | "custom";
+type PresetId = "jev" | "microsoft" | "laya" | "custom" | "scheduler";
 
-const PRESETS: PresetId[] = ["jev", "microsoft", "laya", "custom"];
+const PRESETS: PresetId[] = ["jev", "microsoft", "laya", "custom", ...(import.meta.env.VITE_VOS === "1" ? ["scheduler" as const] : [])];
 
 const JEV_MODELS = [JEV_MODEL, "~typesafe/jev-latest"];
 const MICROSOFT_MODELS = [MICROSOFT_MODEL];
 
 function inferPreset(settings: DecisionSettings): PresetId {
   if (
+    settings.provider === "scheduler" ||
     settings.provider === "custom" ||
     settings.provider === "microsoft" ||
     settings.provider === "laya" ||
@@ -80,7 +82,7 @@ function blankDraft(): ServiceDraft {
 function savedEndpointsFrom(
   settings: DecisionSettings,
 ): Record<PresetId, string> {
-  const endpoints = { jev: "", microsoft: "", laya: "", custom: "" };
+  const endpoints = { jev: "", microsoft: "", laya: "", custom: "", scheduler: "" };
   for (const id of PRESETS) {
     const saved = settings.services?.find((item) => item.provider === id);
     endpoints[id] =
@@ -97,6 +99,7 @@ function draftsFrom(
     microsoft: blankDraft(),
     laya: blankDraft(),
     custom: blankDraft(),
+    scheduler: blankDraft(),
   };
   for (const id of PRESETS) {
     const saved = settings.services?.find((item) => item.provider === id);
@@ -126,7 +129,7 @@ function draftsFrom(
 
 function defaultEndpoint(preset: PresetId): string {
   if (preset === "laya") return LAYA_ENDPOINT;
-  if (preset === "custom") return "";
+  if (preset === "custom" || preset === "scheduler") return "";
   return OPENROUTER_DECISIONS;
 }
 
@@ -148,14 +151,7 @@ function connectionFor(
   endpoint: string,
   model: string,
 ): { provider: DecisionProvider; endpoint: string; model: string } {
-  const provider: DecisionProvider =
-    preset === "microsoft"
-      ? "microsoft"
-      : preset === "laya"
-      ? "laya"
-      : preset === "custom"
-      ? "custom"
-      : "jev";
+  const provider: DecisionProvider = preset;
   return {
     provider,
     endpoint: endpoint.trim(),
@@ -177,7 +173,9 @@ function DrawerFields({
   onUseSavedKey,
   layaActive,
   onLayaStatus,
+  schedulerModels,
 }: {
+  schedulerModels: { value: string; label: string }[];
   preset: PresetId;
   endpoint: string;
   model: string;
@@ -193,6 +191,12 @@ function DrawerFields({
   onLayaStatus: (status: LayaStatus) => void;
 }) {
   const { t } = useTranslation();
+  if (preset === "scheduler") {
+    return <div className={styles.drawerBody}>
+      <p>{t("voice.vosManaged")}</p>
+      <Select style={{ width: "100%" }} value={model || undefined} options={schedulerModels} onChange={onModel} />
+    </div>;
+  }
   const cloud = preset === "jev" || preset === "microsoft";
   const modelRequired = cloud;
   const keyRequired =
@@ -359,6 +363,7 @@ export function DecisionSettingsPanel({
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(true);
+  const [schedulerModels, setSchedulerModels] = useState<{ value: string; label: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [preset, setPreset] = useState<PresetId>("jev");
@@ -380,7 +385,7 @@ export function DecisionSettingsPanel({
   const [savedProvider, setSavedProvider] = useState<PresetId>("jev");
   const [savedEndpoints, setSavedEndpoints] = useState<
     Record<PresetId, string>
-  >({ jev: "", microsoft: "", laya: "", custom: "" });
+  >({ jev: "", microsoft: "", laya: "", custom: "", scheduler: "" });
   const [savedActive, setSavedActive] = useState(false);
   const [layaReady, setLayaReady] = useState(false);
   const [editing, setEditing] = useState<PresetId | null>(null);
@@ -428,6 +433,17 @@ export function DecisionSettingsPanel({
       .layaStatus()
       .then((status) => setLayaReady(status.running))
       .catch(() => setLayaReady(false));
+  }, []);
+
+  useEffect(() => {
+    if (import.meta.env.VITE_VOS !== "1") return;
+    let active = true;
+    void fetch(`${import.meta.env.BASE_URL}__va/model-catalog`, { credentials: "same-origin" })
+      .then(async response => { if (!response.ok) throw new Error("Model catalog unavailable"); return response.json(); })
+      .then((catalog: { models: { id: string; name: string; endpoints: string[] }[] }) => {
+        if (active) setSchedulerModels(catalog.models.filter(model => model.endpoints.includes("systemone")).map(model => ({ value: model.id, label: model.name })));
+      }).catch(() => { if (active) setSchedulerModels([]); });
+    return () => { active = false; };
   }, []);
 
   const patchDraft = (id: PresetId, patch: Partial<ServiceDraft>) => {
@@ -483,7 +499,7 @@ export function DecisionSettingsPanel({
     }
     if (
       values.enabled &&
-      (preset === "jev" || preset === "microsoft") &&
+      (preset === "jev" || preset === "microsoft" || preset === "scheduler") &&
       !selected.model
     ) {
       message.error(t("models.decisionNeedModel"));
@@ -582,6 +598,7 @@ export function DecisionSettingsPanel({
     microsoft: { src: microsoftLogo, mark: false },
     laya: { src: layaLogo, mark: false },
     custom: { src: customProviderLogo, mark: false },
+    scheduler: { src: customProviderLogo, mark: false },
   };
 
   const choiceCopy: Record<
@@ -606,6 +623,7 @@ export function DecisionSettingsPanel({
       blurb: t("models.decisionLayaBlurb"),
       hostTone: styles.hostLocal,
     },
+    scheduler: { name: "V-Scheduler", host: "VOS", blurb: t("voice.vosManaged"), hostTone: styles.hostOwn },
     custom: {
       name: t("models.decisionCustomName"),
       host: t("models.decisionCustomHost"),
@@ -876,6 +894,7 @@ export function DecisionSettingsPanel({
         {editing ? (
           <DrawerFields
             preset={editing}
+            schedulerModels={schedulerModels}
             endpoint={drafts[editing].endpoint}
             model={drafts[editing].model}
             apiKey={drafts[editing].apiKey}

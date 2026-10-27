@@ -13,7 +13,7 @@ from octop.infra.errors import ErrorCode, OctopError
 _SETTINGS_KEY = "decision_model"
 _SECRET_KEY = "decision_api_key"
 _PROVIDER_ORDER = ("jev", "microsoft", "laya", "custom")
-_PROVIDERS = frozenset(_PROVIDER_ORDER)
+_PROVIDERS = frozenset((*_PROVIDER_ORDER, "scheduler"))
 
 
 @dataclass(frozen=True)
@@ -156,7 +156,7 @@ class DecisionSettingsStore:
             _validate_service(
                 name, next_endpoint, next_model, required=enabled and name == provider
             )
-            previous_endpoint = current[name]["endpoint"]
+            previous_endpoint = current.get(name, {}).get("endpoint", "")
             current[name] = {"endpoint": next_endpoint, "model": next_model}
             key = item.get("api_key", None)
             if isinstance(key, str):
@@ -190,7 +190,7 @@ class DecisionSettingsStore:
 
         return DecisionConfig(
             enabled=True,
-            provider=view.provider,  # type: ignore[arg-type]
+            provider="jev" if view.provider == "scheduler" else view.provider,  # type: ignore[arg-type]
             endpoint=view.endpoint,
             api_key=self._stored_key(view.provider, legacy_owner=view.legacy_key_owner),
             model=view.model,
@@ -229,7 +229,9 @@ class DecisionSettingsStore:
             endpoint=target,
             api_key=probe_key,
             model=(model if model is not None else view.model).strip(),
-            provider=(provider or view.provider).strip(),
+            provider="jev"
+            if (provider or view.provider).strip() == "scheduler"
+            else (provider or view.provider).strip(),
         )
         try:
             probabilities = await client.score_async(
@@ -309,7 +311,7 @@ def _validate_service(provider: str, endpoint: str, model: str, *, required: boo
             ErrorCode.SLASH_BAD_ARGS,
             "endpoint is required when the decision model is enabled",
         )
-    if provider in {"jev", "microsoft"} and not model.strip():
+    if provider in {"jev", "microsoft", "scheduler"} and not model.strip():
         raise OctopError(
             ErrorCode.SLASH_BAD_ARGS,
             "model is required for this decision provider",
