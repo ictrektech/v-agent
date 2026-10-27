@@ -10,7 +10,7 @@
 
 ## 模型
 
-在 V-Scheduler 中配置模型后，v-agent 每分钟自动刷新当前 VOS 用户可见的模型。支持聊天、Responses 和 Messages 接口，无需填写模型 API Key。纯文本补全模型不进入 Agent 工具执行列表。
+在 V-Scheduler 中配置模型后，v-agent 每分钟自动刷新当前 VOS 用户可见的模型。支持聊天、Responses 和 Messages 接口，无需填写模型 API Key。视觉模型保留图片输入能力。纯文本补全模型不进入 Agent 工具执行列表。
 
 ## VOS 应用
 

@@ -14,7 +14,7 @@ const fixture = createServer((req, res) => {
     if (!['fixture-a', 'fixture-b'].includes(key)) { res.end(JSON.stringify({ code: 10001 })); return; }
     res.end(JSON.stringify({ sub: key, preferred_username: key }));
   } else if (req.url === '/health') res.end(JSON.stringify({ fixture: 'image-studio' }));
-  else res.end(JSON.stringify({ models: [{ id: 'fixture-model', qualified: 'fixture-model', name: 'Fixture model', kind: 'chat', endpoints: ['chat/completions'], capabilities: ['tools'] }] }));
+  else res.end(JSON.stringify({ models: [{ id: 'fixture-model', qualified: 'fixture-model', name: 'Fixture model', kind: 'chat', endpoints: ['chat/completions'], capabilities: ['tools', 'vision'] }] }));
 });
 fixture.listen(18090, '127.0.0.1'); await once(fixture, 'listening');
 const gateway = spawn('/opt/v-agent/bin/entrypoint', [], {
@@ -48,6 +48,10 @@ try {
     assert.equal(agents.length, 1, 'V-Scheduler discovery must provision the default assistant');
     assert.equal(agents[0].name, 'v-agent');
     assert.equal(agents[0].state, 'running', agents[0].last_error ?? 'default assistant did not start');
+    const providers = await (await fetch(base + prefix + '/api/providers', { headers: { cookie } })).json();
+    assert.deepEqual(providers[0].models[0].input, ['text', 'image'], 'model input modalities must survive Scheduler discovery');
+    const schema = await (await fetch(base + prefix + '/api/openapi.json', { headers: { cookie } })).json();
+    assert.equal(schema.info.title, 'v-agent API');
     logins.push({ cookie, session });
   }
   assert.notEqual(logins[0].session.namespace, logins[1].session.namespace);

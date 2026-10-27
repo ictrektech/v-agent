@@ -39,7 +39,7 @@ async def synchronize(server):
         if row["api"] == "text-completions":
             continue
         groups.setdefault(row["api"], []).append({
-            "id": row["id"], "name": row["name"],
+            "id": row["id"], "name": row["name"], "input": row.get("input", ["text"]),
             "api_mode": "responses" if row["api"] == "openai-responses" else "chat_completions",
         })
     for api in ["openai-completions", "openai-responses", "anthropic-messages"]:
@@ -112,6 +112,7 @@ async def main():
     task = asyncio.create_task(refresh())
     try:
         app = build_app(server)
+        app.title = "v-agent API"
         await uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=int(os.environ["VA_PORT"]),
                                            log_level="warning")).serve()
     finally:
