@@ -4135,6 +4135,9 @@ class AgentManager:
                 else []
             )
             skill_dirs = configured_skill_dirs + package_skill_dirs
+            from octop.infra.vos import add_vos_capabilities
+
+            skill_dirs, mcp_server_configs = add_vos_capabilities(skill_dirs, mcp_server_configs)
             if self._plugin_manager is not None:
                 for plugin_item in self._plugin_manager.list_installed():
                     plugin_id = str(plugin_item.get("id") or "")

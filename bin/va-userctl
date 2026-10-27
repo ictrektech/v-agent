@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Root-side helper for v-agent. The gateway runs it through a fixed-path
+# sudoers entry and never touches user directories itself.
+#
+# Every command is idempotent: re-running `ensure` after a container rebuild
+# re-adopts the existing volume instead of replacing it.
+set -euo pipefail
+
+DATA_ROOT="${DATA_ROOT:-/data}"
+NAME_RE='^va-[0-9a-f]{8}$'
+
+die() { printf 'va-userctl: %s\n' "$*" >&2; exit 1; }
+
+require_root() {
+  [[ "${EUID}" -eq 0 ]] || die 'must run as root'
+}
+
+# ensure <linuxName> <uid> <home>
+ensure() {
+  local name="${1:-}" uid="${2:-}" home="${3:-}"
+
+  [[ "$name" =~ $NAME_RE ]] || die "invalid account name: ${name}"
+  [[ "$uid" =~ ^[0-9]+$ ]] || die "invalid uid: ${uid}"
+  (( uid >= 20000 && uid <= 59999 )) || die "uid out of range: ${uid}"
+  [[ "$home" == /* ]] || die "home must be absolute: ${home}"
+  case "$home" in
+    "${DATA_ROOT}"/*) ;;
+    *) die "home outside data root: ${home}" ;;
+  esac
+
+  if ! getent group "$uid" >/dev/null 2>&1; then
+    groupadd -g "$uid" --system "$name"
+  fi
+  if ! getent passwd "$name" >/dev/null 2>&1; then
+    useradd -u "$uid" -g "$uid" --no-create-home --home "$home" \
+      --shell /usr/sbin/nologin "$name"
+  fi
+
+  # Rebuild the layout without deleting anything: the volume may already hold
+  # sessions, plugins and workspace files from a previous container.
+  mkdir -p "$home" "$home/.vagent" "$home/.agents" "$home/.octop" "$home/workspace"
+  # The default landing directory for chats without a project.
+  mkdir -p "$home/workspace/日常"
+
+  # Traversable but not listable: the account must reach its own home through
+  # both parents, while neither parent reveals the other tenants.
+  chmod 0711 "$(dirname "$home")"
+  chown "$name:$name" "$home"
+  # Tighten only: never widen an existing mode.
+  chmod 0700 "$home"
+  chown -R "$name:$name" "$home/.vagent" "$home/.agents" "$home/.octop" "$home/workspace"
+  chmod 0700 "$home/.vagent" "$home/.agents"
+}
+
+# claim <linuxName> <socketPath>
+#
+# The gateway creates a tenant's capability sockets as root; the owner of the
+# account must be the only one able to connect to them. Only the listed socket
+# names under a namespace home are accepted, so this cannot become a
+# general-purpose chown.
+claim() {
+  local name="${1:-}" path="${2:-}"
+
+  [[ "$name" =~ $NAME_RE ]] || die "invalid account name: ${name}"
+  case "$path" in
+    "${DATA_ROOT}/users/"*"/.vagent/voffice.sock"|"${DATA_ROOT}/users/"*"/.vagent/album.sock"|"${DATA_ROOT}/users/"*"/.vagent/weknora.sock"|"${DATA_ROOT}/users/"*"/.vagent/image-studio.sock") ;;
+    *) die "unexpected claim path: ${path}" ;;
+  esac
+  [[ -S "$path" ]] || die "not a socket: ${path}"
+
+  local home="${path%/.vagent/*}"
+  [[ "$(basename "$home")" =~ ^[0-9a-f]{40}$ ]] || die "home is not a namespace directory: ${home}"
+  getent passwd "$name" >/dev/null 2>&1 || die "unknown account: ${name}"
+
+  chown "$name:$name" "$path"
+  chmod 0600 "$path"
+}
+
+main() {
+  local command="${1:-}"
+  [[ -n "$command" ]] || die 'usage: va-userctl ensure <name> <uid> <home> | claim <name> <socket>'
+  require_root
+  case "$command" in
+    ensure)
+      shift
+      ensure "$@"
+      ;;
+    claim)
+      shift
+      claim "$@"
+      ;;
+    *)
+      die "unknown command: ${command}"
+      ;;
+  esac
+}
+
+main "$@"

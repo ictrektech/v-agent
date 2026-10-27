@@ -260,8 +260,8 @@ export default function SetupPage() {
               <img
                 src={
                   isDark
-                    ? publicUrl("logo_horizontal_white.png")
-                    : publicUrl("logo_horizontal_dark.png")
+                    ? publicUrl("v-agent.png")
+                    : publicUrl("v-agent.png")
                 }
                 alt="Octop"
                 className={styles.wizardHeaderLogo}

@@ -2,7 +2,8 @@ import { getApiUrl } from "./config";
 import i18n from "../i18n";
 import { markNavigatingAway } from "../utils/reloadOnStaleChunk";
 
-const AUTH_TOKEN_KEY = "auth_token";
+const AUTH_TOKEN_KEY =
+  import.meta.env.VITE_VOS === "1" ? "v-agent:auth_token" : "auth_token";
 /** sessionStorage handoff for SSO redirects / popups (default = remember). */
 const AUTH_REMEMBER_PREF_KEY = "auth_remember_pref";
 

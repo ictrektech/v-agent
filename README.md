@@ -1,3 +1,7 @@
+# v-agent
+
+v-agent is the VOS edition of [TencentCloud/Octop](https://github.com/TencentCloud/Octop). See [VOS usage, architecture and release](ictrek.app/README.md) and [UPSTREAM](UPSTREAM).
+
 <p align="center">
   <img src="docs/assets/readme-banner.png" alt="Octop Banner" width="600" />
 </p>

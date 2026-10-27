@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
-import { clearAuthToken, getAuthToken } from "../api/request";
+import { clearAuthToken, getAuthToken, setAuthToken } from "../api/request";
 import { authApi, type OctopUser } from "../api/modules/auth";
 import { applyUserLocale } from "../utils/locale";
 import { isNetworkFetchError } from "../utils/networkError";
 import { CurrentUserProvider } from "../hooks/useCurrentUser";
+import { checkVosAccount } from "../utils/vosSession";
 import BootOfflinePanel from "./BootOfflinePanel";
 
 interface AuthGuardProps {
@@ -47,10 +48,39 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let stopVos = () => {};
 
     const check = async () => {
       setOffline(false);
       try {
+        if (import.meta.env.VITE_VOS === "1") {
+          const response = await fetch(
+            `${import.meta.env.BASE_URL}__va/runtime-session`,
+            {
+              credentials: "same-origin",
+              cache: "no-store",
+            },
+          );
+          if (!response.ok) {
+            window.location.reload();
+            return;
+          }
+          const session = (await response.json()) as {
+            access_token: string;
+            namespace: string;
+            subject: string;
+          };
+          if (localStorage.getItem("v-agent:namespace") !== session.namespace) {
+            clearAuthToken();
+            localStorage.setItem("v-agent:namespace", session.namespace);
+          }
+          stopVos = await checkVosAccount(session.subject);
+          if (cancelled) {
+            stopVos();
+            return;
+          }
+          setAuthToken(session.access_token, false);
+        }
         const status = await authApi.getAuthStatus();
 
         // No admin yet → push to setup wizard; drop any leftover JWT from a
@@ -110,6 +140,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     void check();
     return () => {
       cancelled = true;
+      stopVos();
     };
   }, [retryKey]);
 

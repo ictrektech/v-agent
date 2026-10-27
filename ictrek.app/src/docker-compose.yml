@@ -1,0 +1,82 @@
+x-v-agent-env: &v-agent-env
+  PORT: 8080
+  DATA_ROOT: /data
+  APP_BASE_PATH: /app/com.ictrek.v-agent
+  VOS_OIDC_CLIENT_ID: com.ictrek.v-agent
+  VOS_OIDC_SCOPE: openid profile email
+  VOS_OIDC_USERINFO_URL: ${VOS_OIDC_USERINFO_URL:-http://172.17.0.1:8105/v1000/oauth2/userinfo}
+  # 内部直连：image-studio 后端与 v-agent 同在 vos_default 网络，按服务名解析，
+  # 每台服务器一致；v-office 存储在宿主机 5000（走 docker 网桥）；AI 相册在独立
+  # compose 网络，经 VOS 网关的 /app 路径（172.17.0.1 是 docker 默认网桥地址，同样与机器无关）。
+  IMAGE_STUDIO_BASE_URL: ${IMAGE_STUDIO_BASE_URL:-http://image-studio-backend:5000}
+  VA_OFFICE_BASE: ${VA_OFFICE_BASE:-http://v-office-storage:5000}
+  VA_ALBUM_URL: ${VA_ALBUM_URL:-http://172.17.0.1:1182/app/com.ictrek.ai-album/api}
+  # 知识库（HybRAG / com.ictrek.hybrag）与 v-agent 同在 vos_default 网络，
+  # 按 compose 别名直连后端 8080（容器内端口，不是宿主机映射的 29081），
+  # 不经过 VOS 网关的 /app 前缀，也就少一次 strip 转发。
+  WEKNORA_URL: ${WEKNORA_URL:-http://hybrag-app:8080}
+  SESSION_TTL_MS: ${SESSION_TTL_MS:-43200000}
+  NODE_ENV: production
+
+x-v-agent-base: &v-agent-base
+  restart: unless-stopped
+  environment: *v-agent-env
+  # bin/vh-jail needs mount and pid namespaces so one tenant cannot see another
+  # tenant's home or processes. Docker's default capability set lacks
+  # CAP_SYS_ADMIN, and the default seccomp profile blocks the syscalls.
+  cap_add:
+    - SYS_ADMIN
+    - SYS_PTRACE
+  security_opt:
+    - seccomp:unconfined
+    - apparmor:unconfined
+  volumes:
+    - ${VOS_APP_STORAGE_PATH}/data:/data
+  networks:
+    vos_default:
+      aliases:
+        - v-agent
+  labels:
+    - "traefik.enable=true"
+    - "traefik.docker.network=vos_default"
+    # Application entry: strip the VOS prefix, hand the SPA shell to dsh.
+    - "traefik.http.routers.v-agent-app.rule=PathPrefix(`/app/com.ictrek.v-agent`)"
+    - "traefik.http.routers.v-agent-app.service=v-agent"
+    - "traefik.http.routers.v-agent-app.middlewares=v-agent-strip"
+    - "traefik.http.middlewares.v-agent-strip.stripprefix.prefixes=/app/com.ictrek.v-agent"
+    # Frontend, APIs and WebSockets share the unique application prefix.
+    - 'traefik.http.routers.v-agent-top.rule=PathPrefix(`/app/com.ictrek.v-agent`) && HeaderRegexp(`Sec-Fetch-Dest`, `document`)'
+    - 'traefik.http.routers.v-agent-top.priority=1500'
+    - 'traefik.http.routers.v-agent-top.service=v-agent'
+    - 'traefik.http.routers.v-agent-top.middlewares=v-agent-top-redirect'
+    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.regex=^(https?://[^/]+)/app/com\.ictrek\.v-agent/?.*$'
+    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.replacement=$${1}/#/app/app-drawer/com.ictrek.v-agent/v-agent'
+    - 'traefik.http.middlewares.v-agent-top-redirect.redirectregex.permanent=false'
+    - "traefik.http.services.v-agent.loadbalancer.server.port=8080"
+  healthcheck:
+    test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8080/__va/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+    interval: 30s
+    timeout: 10s
+    start_period: 60s
+    retries: 3
+
+services:
+  v-agent-amd:
+    <<: *v-agent-base
+    profiles: ["amd"]
+    image: ${V_AGENT_AMD_IMAGE}
+    pull_policy: always
+    mem_limit: ${V_AGENT_MEM_LIMIT:-8g}
+    cpus: ${V_AGENT_CPU_LIMIT:-4}
+
+  v-agent-arm:
+    <<: *v-agent-base
+    profiles: ["arm"]
+    image: ${V_AGENT_ARM_IMAGE}
+    pull_policy: always
+    mem_limit: ${V_AGENT_MEM_LIMIT:-8g}
+    cpus: ${V_AGENT_CPU_LIMIT:-4}
+
+networks:
+  vos_default:
+    external: true
