@@ -6,7 +6,6 @@ routers:
     title:
       zh-CN: v-agent
       en: v-agent
-    icon: lucide:bot
     order: 210
     iframe-src: /app/com.ictrek.v-agent/?v=__APP_VERSION__
     keep-alive: true
