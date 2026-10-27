@@ -1,0 +1,14 @@
+Product: v-agent
+Fork: git@github.com:ictrektech/v-agent.git
+Upstream: https://github.com/TencentCloud/Octop.git
+Upstream branch: main
+VOS integration base: 890111b7879665840414ca28ab168b05b0db0921
+
+Synchronize upstream with local Git operations. Preserve bin/, gateway/, skills/,
+ictrek.app/, Dockerfile.vos, build_image.sh, .github/workflows/vos-release.yml,
+the VOS frontend bootstrap, product branding, and VOS harness assembly.
+VOS versions are tracked in ictrek.app/VERSION, independently of upstream Python versions.
+
+VOS gateway and skill adapters derive from ictrektech/v-harness (MIT).
+Their retained license is gateway/LICENSE.v-harness.
+Local upstream remote: git remote add upstream https://github.com/TencentCloud/Octop.git

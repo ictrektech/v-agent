@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Run one user's Octop inside a mount + pid + uts + chroot jail.
+#
+# The jail layout mirrors an ordinary Linux server:
+#
+#   /home/<namespace>   the tenant's own content (bound from /data/users/...)
+#   /usr /bin /lib ...  shared runtime, mounted read-only
+#   /data               not mounted at all
+#
+# The hostname is set per namespace so the prompt reads `va-xxxx@Octop:~` instead
+# of exposing the container id, and `cd ..` from the tenant home stops at /home
+# because nothing above it exists.
+#
+# Requires CAP_SYS_ADMIN plus unconfined seccomp, declared in the app manifest.
+#
+# Usage: va-jail <account> <uid> <home> <command...>
+set -euo pipefail
+
+DATA_ROOT="${DATA_ROOT:-/data}"
+USERS_ROOT="${DATA_ROOT}/users"
+# Read-only: the tenant's own content is the only writable path besides /tmp.
+SKILLS_ROOT="${BUNDLED_SKILL_DIR:-/opt/v-agent/skills}"
+JAIL_HOSTNAME="${VA_JAIL_HOSTNAME:-v-agent}"
+
+die() { printf 'va-jail: %s\n' "$*" >&2; exit 1; }
+
+[[ "${EUID}" -eq 0 ]] || die 'must run as root'
+
+account="${1:-}"
+uid="${2:-}"
+home="${3:-}"
+shift 3 || die 'usage: va-jail <account> <uid> <home> <command...>'
+
+[[ "$account" =~ ^va-[0-9a-f]{8}$ ]] || die "invalid account: ${account}"
+[[ "$uid" =~ ^[0-9]+$ ]] || die "invalid uid: ${uid}"
+[[ "$home" == "${USERS_ROOT}"/* ]] || die "home outside ${USERS_ROOT}: ${home}"
+namespace="$(basename "$home")"
+[[ "$namespace" =~ ^[0-9a-f]{40}$ ]] || die "invalid namespace: ${namespace}"
+
+export VA_JAIL_UID="$uid"
+export VA_JAIL_NAMESPACE="$namespace"
+export VA_JAIL_HOST_HOME="$home"
+# The home path as the jailed process sees it; the gateway advertises the same
+# value in HOME/OCTOP_HOME so nothing inside Octop ever records /data/users/...
+export VA_JAIL_HOME="/home/$namespace"
+export VA_JAIL_SKILLS="$SKILLS_ROOT"
+export VA_JAIL_HOSTNAME="$JAIL_HOSTNAME"
+
+# --mount-proc gives the pid namespace its own /proc, so `ps` only lists this
+# user's processes. --fork is required for --pid to take effect. --uts exists
+# only so the hostname below stays inside this session.
+exec unshare --mount --pid --uts --fork --kill-child=SIGTERM --mount-proc bash -c '
+  set -euo pipefail
+  cd /
+  # Keep these mounts inside this namespace; propagating them would corrupt the
+  # container for every other user.
+  mount --make-rprivate /
+  hostname "$VA_JAIL_HOSTNAME" 2>/dev/null || true
+
+  # The jail root is a fresh tmpfs; only what is bound below is reachable.
+  root="/tmp/.va-root-$VA_JAIL_NAMESPACE"
+  rm -rf "$root"
+  mkdir -p "$root"
+  mount -t tmpfs -o mode=0755 tmpfs "$root"
+
+  # Public read-only runtime, exactly like a shared server.
+  for dir in usr etc; do
+    mkdir -p "$root/$dir"
+    mount --rbind "/$dir" "$root/$dir"
+    mount -o remount,bind,ro "$root/$dir"
+  done
+
+  # Debian merged-/usr layout: /bin, /lib, /lib64 and /sbin are symlinks into
+  # /usr. The new root has to recreate them or the dynamic loader is missing.
+  for pair in bin:usr/bin lib:usr/lib lib64:usr/lib64 sbin:usr/sbin; do
+    name="${pair%%:*}"
+    target="${pair#*:}"
+    if [[ -e "/$name" ]]; then
+      ln -sfn "$target" "$root/$name"
+    fi
+  done
+
+  # Product skills, read-only, at the path VA_SKILLS_DIR promises.
+  mkdir -p "$root$VA_JAIL_SKILLS"
+  mount --rbind "$VA_JAIL_SKILLS" "$root$VA_JAIL_SKILLS"
+  mount -o remount,bind,ro "$root$VA_JAIL_SKILLS"
+
+  # Devices and a private proc; /tmp is scratch.
+  mkdir -p "$root/dev" "$root/proc" "$root/tmp"
+  mount --rbind /dev "$root/dev"
+  mount --rbind /proc "$root/proc"
+  mount -t tmpfs -o mode=1777 tmpfs "$root/tmp"
+
+  # The tenant home, at the same path the gateway advertises as HOME.
+  mkdir -p "$root$VA_JAIL_HOME"
+  mount --bind "$VA_JAIL_HOST_HOME" "$root$VA_JAIL_HOME"
+  chmod 0700 "$root$VA_JAIL_HOME"
+
+  # Everything above is root-side setup. The command starts unprivileged and
+  # without CAP_SYS_CHROOT, so it cannot climb out of the jail root.
+  exec chroot "$root" /bin/sh -c "
+    export HOME=\"$VA_JAIL_HOME\"
+    cd \"\$HOME/workspace\" 2>/dev/null || cd \"\$HOME\"
+    exec /usr/bin/setpriv --reuid=\"$VA_JAIL_UID\" --regid=\"$VA_JAIL_UID\" --init-groups --bounding-set=-all --no-new-privs \"\$@\"
+  " sh "$@"
+' -- "$@"

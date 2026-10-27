@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export DATA_ROOT="${DATA_ROOT:-/data}"
+mkdir -p "$DATA_ROOT/users"
+chmod 0711 "$DATA_ROOT" "$DATA_ROOT/users"
+exec node /opt/v-agent/gateway/server.mjs

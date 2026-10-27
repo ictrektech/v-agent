@@ -45,3 +45,8 @@ node_modules
 *.log
 logs
 agent-transcripts
+
+!**/SKILL.md
+!src/**/*.md
+!src/**/*.json
+!LICENSE
