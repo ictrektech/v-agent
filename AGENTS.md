@@ -4,14 +4,13 @@ Navigation guide for AI coding agents working in this repository.
 
 ## 1. Collaboration principles
 
-> Favor caution over speed; trivial tasks may relax these rules. These principles complement [§10 Change workflow](#10-change-workflow) and [§11 Communication](#11-communication).
+Apply the VAI repository instructions together with this module guide. User instructions take precedence over inherited upstream workflows.
 
 ### Think before writing
 
-- State assumptions up front; ask when unsure — do not guess.
-- When multiple interpretations exist, list them and let the user choose — do not pick silently.
+- Resolve low-risk, reversible choices independently and state material assumptions. Ask only when ambiguity affects the goal, authorization, cost, or irreversible outcomes.
 - Suggest simpler approaches when they exist; push back when appropriate.
-- Stop when blocked; name exactly what is unclear.
+- Continue independent work when one step is blocked, and report the concrete remaining dependency.
 
 ### Simplicity first
 
@@ -30,11 +29,11 @@ Navigation guide for AI coding agents working in this repository.
 
 - Turn tasks into verifiable goals (what to test, which command proves success).
 - For multi-step work, sketch a short plan: `step → verify: …`
-- Before saying "done", provide verification evidence; the default ship bar is **`make all` green** (see [§6 Run commands](#6-run-commands), [§10 Change workflow](#10-change-workflow)).
+- Report the checks actually run, their results, and any failures or untested behavior. Match checks to the changed surface; preserve evidence of upstream baseline failures.
 
 ## 2. What this is
 
-**Octop** — self-hosted AI assistant platform (multi-user, multi-agent).
+**v-agent** — the VOS edition of TencentCloud/Octop. The internal Python package remains `octop` for upstream compatibility. Fork origin and synchronization base are recorded in `UPSTREAM`.
 One Python wheel: FastAPI backend + React dashboard + Click CLI.
 No external queue. No required services beyond an LLM provider.
 
@@ -200,7 +199,9 @@ cd dashboard && npx tsc -b             # frontend typecheck (after UI changes)
 make build-frontend                     # dashboard/ → src/octop/dashboard/
 ```
 
-**Git hooks (required for local commits):** after cloning, run **`make install-hooks`** once. That sets `core.hooksPath=.githooks` so every `git commit` runs **`make all`** (which first runs **`format-all`**: backend Ruff + dashboard Prettier write, then lint / typecheck / test) and dashboard **`npm run build`**. Formatted files that were already staged are re-added so the commit includes the formatted content. Bypass only in emergencies: `SKIP_PRECOMMIT=1 git commit …` or `git commit --no-verify`. Do **not** skip hooks to land red tests — fix the suite first (CI runs on Linux **and** Windows).
+Builds and tests run on the architecture-matched Linux build hosts defined by VAI. Before each remote build/test, rsync the local source to `~/dev/repos/v-agent`; run artifact-producing commands under `~/dev/build`. Git operations stay local.
+
+`make install-hooks` enables `.githooks/pre-commit`, which calls `ictrek.app/scripts/verify.sh`. This verifies on the build host and reuses evidence for unchanged source. Run relevant frontend checks in the same Node 22 environment used by the image.
 
 ## 7. Key patterns
 
@@ -227,7 +228,7 @@ New agents additionally keep system-scoped files under `{workspace}/.octop/` (e.
 version assertion in `tests/unit/db/test_db_pool.py` (currently `v == 22`). Rebuilds that SQLite
 cannot express as `ALTER` live in `infra/db/migrate.py` helpers and must stay idempotent.
 
-Unreleased schema work on `develop` **folds into the current unreleased `00N`**, not a new
+Unreleased schema work **folds into the current unreleased `00N`**, not a new
 `00N+1`. Only cut a new number after that version has shipped (or after a local DB at `N` would
 otherwise skip the change). `_schema_version` is an applied-migration watermark, not a changelog
 of every edit. The numbered SQL pair is the canonical v(N-1)→vN DDL (including table rebuilds);
@@ -370,46 +371,25 @@ Boundary rules are in [§5](#5-module-boundaries). Additionally:
 | Internationalization (dashboard) | `dashboard/src/locales/`, `dashboard/src/i18n.ts`, `dashboard/src/utils/apiError.ts` |
 | Server timezone (config.json) | `default_timezone` in `config.py`; `GET /api/settings/timezone`; `dashboard/src/hooks/useServerTimezone.ts`; `dashboard/src/utils/formatMessageTime.ts` |
 | Test layout & shared helpers | `tests/support/` (`fakes`, `auth`, `http`, `scenarios`, `app`), `tests/integration/conftest.py`, `tests/unit/{db,cron,gateway,agents,api,cli}/` |
-| Pre-commit hooks | `make install-hooks` → `.githooks/pre-commit` (`make all` incl. `format-all` + dashboard build) |
+| Pre-commit hooks | `.githooks/pre-commit` → `ictrek.app/scripts/verify.sh` (Linux build host) |
 | What is a Thread? | `infra/gateway/threads.py`, `infra/db/repos/threads.py` |
 | Workspace backend resolution | `infra/backend/resolver.py`, `infra/backend/adapter.py` |
 | Connectors & OAuth | `infra/connectors/catalog.json` (built-in metadata + i18n), `infra/connectors/`, `api/routers/connectors.py`; human list: `docs/connectors.md` |
 | OpenAPI tags and API intro | `api/openapi_meta.py` |
 | Human-readable API reference | `docs/api.md` |
 | SharedServices / RepoBundle | `infra/db/services.py` |
-| Branching & release | [§10](#10-change-workflow) Branching & release; `CONTRIBUTING.md`; `.cursor/skills/publish` |
+| VOS build and release | `ictrek.app/README.md`, `build_image.sh`, `ictrek.app/scripts/update_version.sh` |
 
 ## 10. Change workflow
 
-1. **Clarify scope** — read relevant code/docs; confirm assumptions and ambiguities with the user (see [§1](#1-collaboration-principles)).
-2. **Hooks** — if this clone has not run `make install-hooks` yet, do it before committing (see [§6](#6-run-commands)). Pre-commit must stay green (`make all` + dashboard build).
-3. **Minimal implementation** — change only task-related files; dashboard source is in `dashboard/`, build output in `src/octop/dashboard/` (run `make build-frontend` after UI changes).
-4. **Verify** — backend/ship bar: `make all` (`format-all` + `lint` + `typecheck` + `test`). After `dashboard/` changes, also run `cd dashboard && npx tsc -b` (and `npm run lint` when appropriate). After API route changes, glance at `/api/docs` for readable summaries and schemas. After i18n JSON changes, run `uv run pytest tests/unit/i18n -q`. Treat Windows CI as part of the bar: follow [§7 Cross-platform tests](#7-key-patterns).
-5. **Wrap up** — remove orphan symbols introduced in this change; do not commit or push unless asked.
+1. Make focused changes and update the relevant README. Keep upstream module boundaries and user-permission checks intact.
+2. Verify the changed behavior on the configured build host. Check frontend types/build after UI changes, i18n consistency after locale changes, and real VOS flows before claiming device acceptance.
+3. Commit and push directly to `main` locally. Do not require a PR, `develop`, a release branch, or the upstream PyPI/desktop publication workflow. Preserve unrelated changes.
+4. Update and push the VAI submodule reference after delivering the app source.
+5. Build only affected images with explicit architecture/sheets. Publish independent `v-agent` images and Feishu columns; do not replace v-harness images. Verify publication and recorded tags.
+6. Run `ictrek.app/scripts/update_version.sh` locally after image publication. It creates only the VOS trigger tag; GitHub Actions creates the public version, package and App Store publication. Confirm results, then push the final VAI submodule reference.
 
-### Branching & release
-
-```
-feature/* ──PR──► develop ──► release/x.y.z ──PR──► main ──tag v*──► publish
-hotfix/* ──PR──► main (+ tag) and ──PR──► develop
-```
-
-| Branch | Role |
-|--------|------|
-| `main` | Production source of truth; **default branch**; only release / hotfix merges; **only `v*` tags on `main` are production** |
-| `develop` | Daily integration; **base for feature PRs** |
-| `release/x.y.z` | Temporary freeze (version bump / CHANGELOG / bugfixes); **delete after ship** |
-
-**Rules**
-
-- Never push `develop` directly onto `main` — ship via `release/*` → `main` (or hotfix → `main`) only. Do **not** bulk-merge `develop` → `main`; it forks history and breaks post-release sync.
-- Merge `release/*` → `main` with a **merge commit** (not squash) so `main` stays reconcilable with `develop`.
-- Release sequence: cut `release/*` from latest `develop` → PR into `main` → **tag `v*` on main tip only after merge** → delete `release/*` → Actions syncs `main` → `develop` (`sync-main-to-develop.yml`; opens `chore/sync-develop-after-*` on conflict / branch protection).
-- Keep **`main` an ancestor of `develop`** after every release. Do not use legacy `head=main` → `develop` sync PRs.
-- Do **not** push a production tag from a release/feature branch before it is on `main`.
-- Hotfix: branch from `main`, PR to `main` (and tag if shipping), then PR into `develop`.
-- Day-to-day feature work: branch from `develop`, open PR **into `develop`** (not `main`).
-- Human detail: `CONTRIBUTING.md`. Agent publish flow: `.cursor/skills/publish`.
+Upstream publication workflows are retained as `.yml.upstream`. Use `UPSTREAM` to synchronize source without restoring their release policy.
 
 ## 11. Communication
 
