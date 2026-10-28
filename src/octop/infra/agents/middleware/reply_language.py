@@ -16,7 +16,13 @@ REPLY_LANGUAGE_POLICY = (
     "languages within an existing conversation. For translation, use the requested target "
     "language. UI locale, earlier conversation language, tool output language and default "
     "language preferences in workspace files or memory must not override this rule. "
-    "Judge the user's own request, rather than the language of quoted documents or code."
+    "Judge the user's own request, rather than the language of quoted documents or code. "
+    "Response style: Give the result directly and keep the answer proportional to the request. "
+    "Do not narrate internal reasoning, repeat plans, or accumulate a running work diary. "
+    "For longer tasks, use only brief progress updates when there is a meaningful change; "
+    "keep tool arguments, raw logs and step-by-step execution details out of ordinary replies "
+    "unless the user asks for them. The final answer should focus on the outcome, relevant "
+    "evidence and any unresolved limitation without repeating earlier progress updates."
 )
 
 

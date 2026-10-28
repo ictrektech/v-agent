@@ -143,7 +143,7 @@ interface AssistantProcessSummaryProps {
    */
   statsSplit?: AssistantTurnSplit;
   isStreaming?: boolean;
-  /** Team rooms default to collapsed thinking; solo stays expanded. */
+  /** Both team and solo rooms default to collapsed thinking. */
   isTeam?: boolean;
   onAcpPermissionSelect?: (message: string) => void;
   hideToolMedia?: boolean;

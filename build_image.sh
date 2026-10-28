@@ -407,7 +407,7 @@ if [[ "$DRY_RUN" != "1" && "$SKIP_BUILD" != "1" && ! "$REVISION" =~ ^[0-9a-f]{40
   err "Set V_AGENT_SOURCE_REVISION to the full commit from the local checkout before building"
   exit 1
 fi
-TAG="${BASE_TAG}_${REVISION:0:12}"
+TAG="${BASE_TAG}"
 log "IMAGE=${IMAGE}:${TAG}"
 log "REVISION=${REVISION}"
 

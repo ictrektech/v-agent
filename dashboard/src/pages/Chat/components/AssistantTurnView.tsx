@@ -12,6 +12,8 @@ import {
 import { isWriteToolName } from "../constants";
 import { collectChatFilePaths } from "../hooks/useChatFileDetection";
 import { layoutAssistantTurnHitl } from "../utils/layoutAssistantTurnHitl";
+import { useCollapseThinking } from "../hooks/useCollapseThinking";
+import { isTeamAgent } from "../../../utils/teamAgent";
 import { useAgent } from "../../../context/AgentContext";
 import { TodoProgressPanel } from "../../../components/TodoProgressPanel";
 import {
@@ -151,7 +153,8 @@ export default function AssistantTurnView({
   compactProcess = false,
 }: AssistantTurnViewProps) {
   const { t } = useTranslation();
-  const { activeAgentId } = useAgent();
+  const { activeAgentId, activeAgent } = useAgent();
+  const [collapseThinking] = useCollapseThinking(isTeamAgent(activeAgent));
   const agentId = agentIdProp ?? activeAgentId;
   const speakerAgentId =
     messages.map((item) => messageSpeakerId(item)).find(Boolean) || agentId;
@@ -167,8 +170,11 @@ export default function AssistantTurnView({
   const hasPendingHitl = messages.some((m) => m.hitlData?.status === "pending");
 
   const splitOpts = useMemo(
-    () => ({ joinAnswerFragments: turnStreaming }),
-    [turnStreaming],
+    () => ({
+      joinAnswerFragments: turnStreaming && !collapseThinking,
+      compactProgress: collapseThinking,
+    }),
+    [turnStreaming, collapseThinking],
   );
 
   const segmentProcess = useMemo(

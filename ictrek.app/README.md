@@ -18,6 +18,8 @@ HybRAG uses one automatically managed native connector, replacing the duplicate 
 
 AI Album needs an operator to append `com.ictrek.v-octop` to its existing `IMMICH_VOS_AUDIENCE`. For library search/listing, include `asset.read,asset.statistics,album.read,person.read,user.read` in `IMMICH_VOS_PERMISSIONS`, retaining any existing permissions such as `asset.upload`. These keys still belong to the signed-in user; do not enable admin permissions or `asset.download`. Apply these settings through the album deployment configuration and restart its server. Its upload-only default intentionally returns 403 for read operations. Users then open v-Octop without supplying album credentials. Preserve these settings when upgrading the album package.
 
+Thinking and tool execution panels default to collapsed during generation as well as after completion; expand the process row to inspect details. Compact single-user turns show the latest answer instead of concatenating intermediate tool-round commentary. The existing chat menu can restore automatic expansion. Replies keep progress updates brief and focus on the result.
+
 Replies follow the latest user message language, including switches within a conversation; an explicit output-language or translation request takes priority over UI locale and historical language preferences.
 
 The dashboard reads the installed VOS package version. Update checks use ictrektech/v-agent GitHub Releases; installation and upgrades are managed by the VOS App Store.

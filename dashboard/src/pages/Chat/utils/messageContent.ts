@@ -118,7 +118,7 @@ function hasCompletedToolBetweenTexts(messages: ChatMessage[]): boolean {
 
 export function splitAssistantTurn(
   messages: ChatMessage[],
-  opts?: { joinAnswerFragments?: boolean },
+  opts?: { joinAnswerFragments?: boolean; compactProgress?: boolean },
 ): AssistantTurnSplit {
   const tools: ChatMessage[] = [];
   const thinkings: ThinkingProcessItem[] = [];
@@ -168,16 +168,18 @@ export function splitAssistantTurn(
 
   // 1:1 ReAct (text → tool → conclusion) keeps the last bubble as the answer
   // once the turn settles. While generating (or for stamped team speakers),
-  // join fragments so the answer never shrinks mid-flight after a tool round.
+  // join fragments in the expanded display. Compact display keeps the latest
+  // reply across tool rounds even while streaming, including stamped speakers.
   const teamStamped = messages.some((item) =>
     Boolean((item.speakerAgentId || "").trim()),
   );
   const joinFragments =
     textParts.length > 1 &&
-    (Boolean(opts?.joinAnswerFragments) ||
-      teamStamped ||
-      messages.some((item) => item.teamWrapup) ||
-      !hasCompletedToolBetweenTexts(messages));
+    (!hasCompletedToolBetweenTexts(messages) ||
+      (!opts?.compactProgress &&
+        (Boolean(opts?.joinAnswerFragments) ||
+          teamStamped ||
+          messages.some((item) => item.teamWrapup))));
   const answerMessage =
     answerTemplate && textParts.length > 0
       ? {

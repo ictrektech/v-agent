@@ -394,6 +394,30 @@ describe("groupConsecutiveAssistantMessages", () => {
     expect(split.answerMessage?.content).toBe("here is the summary");
   });
 
+  it("does not accumulate tool-round commentary in compact streaming turns", () => {
+    const messages = [
+      msg("assistant", "progress", {
+        content: "I will inspect the files first.",
+        speakerAgentId: "host",
+      }),
+      msg("assistant", "tool", {
+        toolData: { name: "read_file", arguments: "{}", output: "ok" },
+      }),
+      msg("assistant", "answer", {
+        content: "Here is the result.",
+        speakerAgentId: "host",
+        status: "streaming",
+      }),
+    ];
+    const split = splitAssistantTurn(messages, {
+      compactProgress: true,
+      joinAnswerFragments: true,
+    });
+    expect(split.answerMessage?.content).toBe("Here is the result.");
+    expect(split.tools).toHaveLength(1);
+    expect(messages[0].content).toBe("I will inspect the files first.");
+  });
+
   it("does not join an identical host dispatch twice", () => {
     const split = splitAssistantTurn([
       msg("assistant", "h1", {

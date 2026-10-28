@@ -65,12 +65,13 @@ function TitleBar({ isTeam = false }: { isTeam?: boolean }) {
 describe("thinking display preference", () => {
   beforeEach(() => localStorage.clear());
 
-  it("keeps the existing default: expand while streaming, collapse on completion", () => {
+  it("defaults to a compact status while streaming and after completion", () => {
     const split = thinkingSplit();
     const { rerender } = render(
       <AssistantProcessSummary split={split} isStreaming />,
     );
-    expect(screen.getByText("Thinking content")).toBeInTheDocument();
+    expect(screen.queryByText("Thinking content")).not.toBeInTheDocument();
+    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "false");
     rerender(<AssistantProcessSummary split={split} isStreaming={false} />);
     expect(screen.queryByText("Thinking content")).not.toBeInTheDocument();
   });
@@ -114,6 +115,7 @@ describe("thinking display preference", () => {
   });
 
   it("saves the menu choice and applies it to mounted panels and later visits", async () => {
+    localStorage.setItem(COLLAPSE_THINKING_SOLO_KEY, "false");
     const { unmount } = render(
       <>
         <TitleBar />
