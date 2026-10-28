@@ -27,9 +27,18 @@ class LocalConnection(http.client.HTTPConnection):
         self.sock.connect(self.socket_path)
 
 
-def request(service: str, method: str, path: str, body: dict | None):
+def request(
+    service: str, method: str, path: str, body: dict | None, output_file: str | None = None
+):
     if not path.startswith("/") or path.startswith("//") or ".." in path:
         raise ValueError("Use a service-relative API path")
+    target = None
+    if output_file:
+        target = Path(output_file).resolve()
+        if not target.is_relative_to(Path.cwd().resolve()) or not target.is_relative_to(
+            Path.home().resolve()
+        ):
+            raise ValueError("Save results inside your own current workspace")
     connection = LocalConnection(service)
     try:
         connection.request(
@@ -39,10 +48,27 @@ def request(service: str, method: str, path: str, body: dict | None):
             headers={"Content-Type": "application/json"},
         )
         response = connection.getresponse()
-        data = response.read(4 * 1024 * 1024 + 1)
-        if len(data) > 4 * 1024 * 1024:
+        limit = (64 if target else 4) * 1024 * 1024
+        data = response.read(limit + 1)
+        if len(data) > limit:
             raise ValueError("Response too large; use the app skill's download command")
-        return {"status": response.status, "body": data.decode("utf-8", errors="replace")}
+        content_type = response.getheader("Content-Type", "").lower()
+        if target and 200 <= response.status < 300:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            return {
+                "status": response.status,
+                "file": str(target),
+                "content_type": content_type,
+                "bytes": len(data),
+            }
+        if content_type.startswith(("image/", "audio/", "video/")) or (
+            "application/octet-stream" in content_type
+        ):
+            raise ValueError(
+                "Binary response: specify output_file or use the app skill's download command"
+            )
+        return {"status": response.status, "body": data.decode("utf-8")}
     finally:
         connection.close()
 
@@ -53,6 +79,7 @@ async def vos_api(
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"],
     path: str,
     body: dict | None = None,
+    output_file: str | None = None,
 ) -> dict:
     """Call a VOS app as the current user, without asking for credentials.
 
@@ -61,9 +88,10 @@ async def vos_api(
     image-studio: GET /api/v1/models, POST /api/v1/generate.
     photocraft: GET /volumes or /index. Use its dedicated MCP tools to edit.
     Each service proxy enforces its API allowlist and the upstream user's permissions.
+    Use output_file to save downloads as exact bytes inside your current workspace.
     Use the corresponding installed skill for detailed commands and file transfers.
     """
-    return await asyncio.to_thread(request, service, method, path, body)
+    return await asyncio.to_thread(request, service, method, path, body, output_file)
 
 
 @mcp.tool()

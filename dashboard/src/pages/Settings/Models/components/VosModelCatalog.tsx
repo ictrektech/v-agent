@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Empty, Space, Tag, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 type Model = {
@@ -14,8 +14,12 @@ export default function VosModelCatalog({ category }: { category: string }) {
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const loadedRef = useRef(false);
+  const fetchingRef = useRef(false);
   const load = useCallback(async () => {
-    setLoading(true);
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    if (!loadedRef.current) setLoading(true);
     setFailed(false);
     try {
       const r = await fetch(`${import.meta.env.BASE_URL}__va/model-catalog`, {
@@ -27,11 +31,24 @@ export default function VosModelCatalog({ category }: { category: string }) {
     } catch {
       setFailed(true);
     } finally {
+      fetchingRef.current = false;
+      loadedRef.current = true;
       setLoading(false);
     }
   }, []);
   useEffect(() => {
     void load();
+    const refresh = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const timer = window.setInterval(refresh, 10_000);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [load]);
   const visible = models.filter((row) => row.categories.includes(category));
   return (

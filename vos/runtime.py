@@ -9,6 +9,7 @@ import logging
 import os
 import secrets
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -265,11 +266,14 @@ async def main():
     renew()
 
     async def refresh():
+        connector_refreshed = time.monotonic()
         while True:
-            await asyncio.sleep(60)
-            await synchronize_hybrag_connector(
-                server.services, server.user_manager.get(username).id
-            )
+            await asyncio.sleep(10)
+            if time.monotonic() - connector_refreshed >= 60:
+                await synchronize_hybrag_connector(
+                    server.services, server.user_manager.get(username).id
+                )
+                connector_refreshed = time.monotonic()
             try:
                 await synchronize(server)
                 renew()

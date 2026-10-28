@@ -8,7 +8,7 @@
  */
 
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../api/modules/connectors", () => ({
   connectorsApi: {
@@ -78,6 +78,7 @@ vi.mock("../../../context/AgentContext", () => ({
 }));
 
 import { preferencesApi } from "../../../api/modules/preferences";
+import { providerApi } from "../../../api/modules/provider";
 import { useChatComposerResources } from "./useChatComposerResources";
 
 const baseAgents = [
@@ -315,5 +316,42 @@ describe("useChatComposerResources — peer expert defaults", () => {
       });
     });
     expect(result.current.selectedModel).toBeNull();
+  });
+});
+
+
+describe("useChatComposerResources — model freshness", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    vi.mocked(providerApi.listResolvedModels).mockResolvedValue([]);
+  });
+
+  it("updates an open composer and retains its model list through a transient outage", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    vi.mocked(providerApi.listResolvedModels).mockResolvedValue([]);
+    const { result, unmount } = renderHook(() =>
+      useChatComposerResources("expertA", "thread-existing"),
+    );
+    await act(async () => {});
+    expect(result.current.availableModels).toEqual([]);
+    const models = [{
+      provider_id: 1,
+      provider_name: "vos-openai-completions",
+      provider_kind: "openai",
+      model: "com.deepseek.api/deepseek-flash",
+      name: "DeepSeek Flash",
+    }];
+    vi.mocked(providerApi.listResolvedModels).mockResolvedValue(models);
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(result.current.availableModels).toEqual(models);
+    vi.mocked(providerApi.listResolvedModels).mockRejectedValue(new Error("temporary outage"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(result.current.availableModels).toEqual(models);
+    unmount();
+    const calls = vi.mocked(providerApi.listResolvedModels).mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(providerApi.listResolvedModels).toHaveBeenCalledTimes(calls);
   });
 });

@@ -122,8 +122,11 @@ export function useProviders(): UseProvidersResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedRef = useRef(false);
+  const fetchingRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     // Only show full-page loading on first load so open config modals
     // are not unmounted by subsequent refreshes.
     if (!hasLoadedRef.current) setLoading(true);
@@ -168,9 +171,9 @@ export function useProviders(): UseProvidersResult {
         ...r,
         models: Array.isArray(r.models) ? r.models : [],
       }));
-      setProviders(normalized);
-      setPresets(presetList);
-      setResolvedModels(resolved);
+      if (settled[0].status === "fulfilled") setProviders(normalized);
+      if (settled[1].status === "fulfilled") setPresets(presetList);
+      if (settled[2].status === "fulfilled") setResolvedModels(resolved);
       const preferredParts = (preferences?.preferred_model || "").split("/");
       setActiveModel(
         preferredParts.length > 1
@@ -192,6 +195,7 @@ export function useProviders(): UseProvidersResult {
       console.error("Failed to load providers:", err);
       setError(msg);
     } finally {
+      fetchingRef.current = false;
       hasLoadedRef.current = true;
       setLoading(false);
     }
@@ -199,6 +203,20 @@ export function useProviders(): UseProvidersResult {
 
   useEffect(() => {
     void fetchAll();
+  }, [fetchAll]);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") void fetchAll();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const timer = window.setInterval(refresh, 10_000);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [fetchAll]);
 
   return {

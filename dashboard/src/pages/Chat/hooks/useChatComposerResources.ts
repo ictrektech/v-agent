@@ -375,29 +375,37 @@ export function useChatComposerResources(
 
   useEffect(() => {
     let cancelled = false;
+    let loading = false;
+    let loaded = false;
     setModelsReady(false);
-    const loadModels = () => {
-      void providerApi
-        .listResolvedModels(resolvedAgentId)
-        .then((data) => {
-          if (!cancelled) {
-            setAvailableModels(data);
-            setModelsReady(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setAvailableModels([]);
-            setModelsReady(true);
-          }
-        });
+    const loadModels = async () => {
+      if (cancelled || loading) return;
+      loading = true;
+      try {
+        const data = await providerApi.listResolvedModels(resolvedAgentId);
+        if (!cancelled) {
+          setAvailableModels(data);
+          loaded = true;
+        }
+      } catch {
+        if (!cancelled && !loaded) setAvailableModels([]);
+      } finally {
+        loading = false;
+        if (!cancelled) setModelsReady(true);
+      }
     };
-    loadModels();
-    const onFocus = () => loadModels();
+    void loadModels();
+    const onFocus = () => {
+      if (document.visibilityState === "visible") void loadModels();
+    };
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    const timer = window.setInterval(onFocus, 10_000);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
     };
   }, [resolvedAgentId]);
 
