@@ -12,8 +12,9 @@ def test_upstream_runtime_is_unchanged_without_vos(monkeypatch):
 def test_vos_assembly_keeps_custom_connectors_and_uses_local_stdio(monkeypatch):
     monkeypatch.setenv("VA_SKILLS_DIR", "/product/skills")
     custom = {"external": {"transport": "http", "url": "https://example.invalid"}}
-    skills, servers = add_vos_capabilities(["custom"], custom)
+    skills, servers = add_vos_capabilities(["custom"], custom, agent_id="expert-fixture")
     assert skills == ["custom", "/product/skills"]
     assert servers["external"] == custom["external"]
     assert servers["vos-apps"]["transport"] == "stdio"
+    assert servers["photocraft"]["env"]["VA_PHOTOCRAFT_SESSION_SCOPE"] == "expert-fixture"
     assert "vos-apps" not in custom

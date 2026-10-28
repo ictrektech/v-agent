@@ -30,6 +30,8 @@ rsync -a --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclud
 cd "$HOME/dev/build/v-octop-check/source"
 # Reuse the locked dependency environment prepared on this build host.
 export UV_NO_SYNC=1
+# The shared virtualenv may be editable-installed from an older build directory.
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 make all PYTEST_JOBS=4
 node --test gateway/*.test.mjs
 .venv/bin/python -m compileall -q vos

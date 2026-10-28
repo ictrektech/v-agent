@@ -81,7 +81,7 @@ async def synchronize_hybrag_connector(services: Any, user_id: int) -> None:
 
 
 def add_vos_capabilities(
-    skills: list[str], servers: dict[str, Any]
+    skills: list[str], servers: dict[str, Any], *, agent_id: str = "default"
 ) -> tuple[list[str], dict[str, Any]]:
     """Attach the read-only skill bundle and the user's local capability sockets."""
     root = os.environ.get("VA_SKILLS_DIR")
@@ -102,6 +102,9 @@ def add_vos_capabilities(
         "transport": "stdio",
         "command": sys.executable,
         "args": ["/usr/local/lib/v-octop/vos/photocraft_mcp.py"],
-        "env": {"HOME": os.environ.get("HOME", "")},
+        "env": {
+            "HOME": os.environ.get("HOME", ""),
+            "VA_PHOTOCRAFT_SESSION_SCOPE": agent_id,
+        },
     }
     return [*skills, root], servers

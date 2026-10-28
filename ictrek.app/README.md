@@ -24,7 +24,7 @@ Replies follow the latest user message language, including switches within a con
 
 The dashboard reads the installed VOS package version. Update checks use ictrektech/v-agent GitHub Releases; installation and upgrades are managed by the VOS App Store.
 
-PhotoCraft uses its native MCP service through a per-user Unix socket, retaining the native document session across calls. Its skill discovers actual tool schemas before editing; v-harness-specific tool names are not assumed. Requires a PhotoCraft release exposing `/storage/mcp` (verified with 0.10.0-vos.4).
+PhotoCraft uses its native MCP service through a per-user Unix socket. Each expert resumes its own native session across the harness adapter's short-lived stdio processes. A private file lock serializes calls; session ids stay in the user's home and each request still receives that user's VOS authorization. `photocraft_import` transfers a selected workspace image as raw bytes and opens it; `photocraft_export` saves and downloads the edited document back to a chosen workspace file. Neither tool changes volume grants. Its skill discovers actual tool schemas before editing; v-harness-specific tool names are not assumed. Requires a PhotoCraft release exposing `/storage/mcp` (verified with 0.10.0-vos.4).
 
 The V-Scheduler skill and MCP tools expose only inference: discover categories/endpoints, then invoke embeddings, ML, generation, speech, rerank or System One when the current catalog actually provides them. Generation/decision/search tabs show the actual user's Scheduler catalog. Empty categories stay empty; chat models are not substituted. Auto inherits image input from compatible visible chat candidates. Source metadata overrides remain owned by V-Scheduler.
 
