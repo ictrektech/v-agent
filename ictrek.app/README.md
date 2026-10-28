@@ -47,3 +47,5 @@ Commit and push code directly to `main`; CI runs on main code pushes; a version-
 GitHub Release publication and App Store distribution are separate jobs. Packaging verifies the current published V-Scheduler release through GitHub, independently of App Store availability. An App Store outage leaves the GitHub package available and marks only the store job as failed. Published assets are retained on retries.
 
 To retry store distribution after maintenance, run `VOS Pull Package Release` manually with `publish_target=appstore` and `version=0.0.6` (or the required existing version). It downloads that exact GitHub asset; it does not rebuild images, repackage from newer Feishu rows, overwrite GitHub assets or bump the version. `publish_target=github` publishes only GitHub; the default `all` also attempts store distribution.
+
+交付媒体的预览链接使用会话内副本，避免原始临时路径变化导致破图。旧会话的绝对路径预览失败时，前端通过既有鉴权下载接口重试，保留原有用户与路径权限检查。

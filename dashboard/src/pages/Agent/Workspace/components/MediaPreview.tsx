@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Image } from "antd";
 import { useTranslation } from "react-i18next";
-import { requestBlob } from "../../../../api/request";
+import { requestMediaBlob } from "../../../../api/mediaPreview";
 import { isNotFoundApiError } from "../../../../utils/apiError";
 import {
   asImageBlob,
@@ -60,7 +60,7 @@ function useWorkspaceBlob(
 
     const load = async () => {
       try {
-        const blob = await requestBlob(apiPath);
+        const blob = await requestMediaBlob(apiPath);
         if (cancelled) return;
         const objUrl = URL.createObjectURL(toBlob(blob, filename));
         if (objectUrlRef.current) {

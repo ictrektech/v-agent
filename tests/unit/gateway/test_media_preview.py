@@ -71,3 +71,28 @@ async def test_resolve_preview_from_tmp_screenshot() -> None:
         data, mime = payload
         assert data == b"\x89PNG\r\n"
         assert mime == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_delivered_preview_survives_external_source_removal(tmp_path):
+    from urllib.parse import parse_qs, urlsplit
+
+    from octop.infra.gateway.media.backend_files import resolve_dashboard_media_url
+
+    root = tmp_path / "workspace"
+    root.mkdir()
+    external = tmp_path / "generated.png"
+    data = b"\x89PNG\r\n" + b"test pixels"
+    external.write_bytes(data)
+    backend = LocalShellBackend(root_dir=str(root), virtual_mode=False)
+    workspace = BackendWorkspace(backend, str(root))
+    url = await resolve_dashboard_media_url(
+        workspace, "agent-1", external.as_uri(), filename="generated.png", mime="image/png"
+    )
+    source = parse_qs(urlsplit(url).query)["source"][0]
+    assert source.startswith("outbound/")
+    external.unlink()
+    payload = await resolve_preview_payload(
+        source=source, workspace=workspace, mime_hint="image/png"
+    )
+    assert payload == (data, "image/png")

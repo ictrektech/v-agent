@@ -266,16 +266,18 @@ async def resolve_dashboard_media_url(
     filename: str = "",
     mime: str = "",
 ) -> str:
-    """Import external files when needed; preview URL keeps the original path shape."""
+    """Preview the delivered workspace copy so external paths may move or disappear."""
     media_agent = resolve_media_agent_id(agent_id, raw_url)
     raw = raw_url.strip()
     if raw.startswith("file://"):
-        await ensure_workspace_media_path(workspace, raw, filename=filename, mime=mime)
-        return media_preview_url(media_agent, raw, mime)
+        imported = await ensure_workspace_media_path(workspace, raw, filename=filename, mime=mime)
+        return media_preview_url(agent_id if imported else media_agent, imported or raw, mime)
     if raw.startswith("/"):
         file_url = f"file://{raw}"
-        await ensure_workspace_media_path(workspace, file_url, filename=filename, mime=mime)
-        return media_preview_url(media_agent, file_url, mime)
+        imported = await ensure_workspace_media_path(
+            workspace, file_url, filename=filename, mime=mime
+        )
+        return media_preview_url(agent_id if imported else media_agent, imported or file_url, mime)
     return media_preview_url(media_agent, raw, mime)
 
 

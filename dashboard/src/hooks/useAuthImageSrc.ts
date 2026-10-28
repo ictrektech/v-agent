@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { requestBlob } from "../api/request";
+import { requestMediaBlob } from "../api/mediaPreview";
 import {
   asImageBlob,
   isDataUrl,
@@ -34,7 +34,9 @@ export async function fetchAuthImageBlob(
     const res = await fetch(url);
     return asImageBlob(await res.blob(), filename);
   }
-  const blob = await requestBlob(apiPathFromUrl(url), { cache: "no-store" });
+  const blob = await requestMediaBlob(apiPathFromUrl(url), {
+    cache: "no-store",
+  });
   return asImageBlob(blob, filename);
 }
 
