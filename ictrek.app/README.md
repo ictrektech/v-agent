@@ -42,3 +42,8 @@ V_AGENT_SOURCE_REVISION=<local-commit> ./build_image.sh --target arm --sheet ARM
 Images use only `swr.cn-southwest-2.myhuaweicloud.com/ictrek/v-octop`, with independent Feishu columns named `v-Octop`. No v-harness image or column is modified. `ictrek.app/scripts/package.sh` resolves the published V-Scheduler version and validates the pull package.
 
 Commit and push code directly to `main`; CI runs on main code pushes; a version-only release commit reuses the source checks. No PR or upstream develop/release branch is required. After pushing code and the VAI gitlink, run `ictrek.app/scripts/update_version.sh patch` locally. The `vos-v-octop-v*` workflow creates the public release and publishes to VOS App Store. Configure `FEISHU_APP_ID`, `FEISHU_APP_SECRET`, `APPSTORE_IP`, `APPSTORE_TOKEN`. The spreadsheet ID is fixed in code. Upstream desktop/PyPI publication workflows are retained as `.yml.upstream` and do not run for this product.
+
+
+GitHub Release publication and App Store distribution are separate jobs. Packaging verifies the current published V-Scheduler release through GitHub, independently of App Store availability. An App Store outage leaves the GitHub package available and marks only the store job as failed. Published assets are retained on retries.
+
+To retry store distribution after maintenance, run `VOS Pull Package Release` manually with `publish_target=appstore` and `version=0.0.6` (or the required existing version). It downloads that exact GitHub asset; it does not rebuild images, repackage from newer Feishu rows, overwrite GitHub assets or bump the version. `publish_target=github` publishes only GitHub; the default `all` also attempts store distribution.

@@ -6,17 +6,34 @@ on:
   # Re-run a failed release without deleting and re-pushing the tag.
   workflow_dispatch:
     inputs:
+      publish_target:
+        description: Publish both destinations, GitHub only, or retry App Store from an existing GitHub package
+        type: choice
+        options: [all, github, appstore]
+        default: all
+      version:
+        description: Existing GitHub version for an appstore-only retry; otherwise use VERSION
+        type: string
+        required: false
       retire_legacy:
         description: Remove the legacy v-agent store entry after v-Octop device acceptance
         type: boolean
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
+    name: GitHub Release
+    if: inputs.publish_target != 'appstore'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -28,6 +45,7 @@ jobs:
       # A tag push names the version; a manual dispatch falls back to the
       # version committed in VERSION.
       - name: Resolve version
+        id: version
         run: |
           set -euo pipefail
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
@@ -37,6 +55,7 @@ jobs:
           fi
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::cannot resolve version from ${GITHUB_REF_NAME}"; exit 1; }
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $VERSION"
 
       # Fail with a readable message instead of an empty-credential API error.
@@ -62,66 +81,6 @@ jobs:
             "feishu_app_secret": "${{ secrets.FEISHU_APP_SECRET }}"
           }
           EOF
-
-      - name: Open App Store tunnel for dependency verification
-        env:
-          APPSTORE_IP: ${{ secrets.APPSTORE_IP }}
-          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${APPSTORE_IP:-}" || -z "${APPSTORE_TOKEN:-}" ]]; then
-            echo "::error::App Store credentials are not configured."
-            echo "Set APPSTORE_IP and APPSTORE_TOKEN to publish automatically."
-            exit 1
-          fi
-
-          PACKAGE="ictrek.app/dist/v-octop_${VERSION}_pull.tar"
-          mkdir -p "$HOME/.ssh"
-          chmod 700 "$HOME/.ssh"
-          ssh-keyscan -H -p 32222 "$APPSTORE_IP" >> "$HOME/.ssh/known_hosts"
-
-          askpass="$RUNNER_TEMP/vos-appstore-askpass.sh"
-          cat > "$askpass" <<'EOF'
-          #!/bin/sh
-          printf '%s\n' "$APPSTORE_TOKEN"
-          EOF
-          chmod 700 "$askpass"
-          export SSH_ASKPASS="$askpass"
-          export SSH_ASKPASS_REQUIRE=force
-          export DISPLAY=:0
-
-          control_socket="$RUNNER_TEMP/vos-appstore-ssh.sock"
-
-          ssh \
-            -M \
-            -S "$control_socket" \
-            -f \
-            -N \
-            -L 18899:127.0.0.1:18090 \
-            -p 32222 \
-            -o BatchMode=no \
-            -o ExitOnForwardFailure=yes \
-            -o PreferredAuthentications=password \
-            -o PubkeyAuthentication=no \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=3 \
-            tunneluser@"$APPSTORE_IP" </dev/null
-
-          ready=false
-          for _ in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:18899/api/health" >/dev/null; then
-              ready=true
-              break
-            fi
-            if ! ssh -S "$control_socket" -O check -p 32222 tunneluser@"$APPSTORE_IP" >/dev/null 2>&1; then
-              echo "VOS App Store SSH tunnel exited before becoming ready." >&2
-              exit 1
-            fi
-            sleep 1
-          done
-          [[ "$ready" == true ]] || { echo "VOS App Store SSH tunnel did not become ready." >&2; exit 1; }
-
-          echo "VOS_DEPENDENCY_CATALOG_URL=http://127.0.0.1:18899" >> "$GITHUB_ENV"
 
       - name: Build pull-mode package
         run: |
@@ -161,13 +120,120 @@ jobs:
             git tag "$PUBLIC_TAG" "$GITHUB_SHA"
             git push origin "$PUBLIC_TAG"
           fi
-          # A re-run may find the release already present; replace its asset.
+          # Preserve already-published assets on retries.
           if gh release view "$PUBLIC_TAG" >/dev/null 2>&1; then
-            gh release upload "$PUBLIC_TAG" "ictrek.app/dist/v-octop_${VERSION}_pull.tar" --clobber
+            if ! gh release view "$PUBLIC_TAG" --json assets --jq '.assets[].name' | grep -Fxq "v-octop_${VERSION}_pull.tar"; then
+              gh release upload "$PUBLIC_TAG" "ictrek.app/dist/v-octop_${VERSION}_pull.tar"
+            fi
           else
             gh release create "$PUBLIC_TAG" "ictrek.app/dist/v-octop_${VERSION}_pull.tar" \
               --verify-tag --latest --title "v${VERSION}" --notes-file release-notes.md
           fi
+
+      - name: Report GitHub publication
+        run: |
+          echo "GitHub package: https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
+          echo "App Store distribution is a separate job; its failure does not remove this Release." >> "$GITHUB_STEP_SUMMARY"
+
+  appstore:
+    name: VOS App Store
+    needs: release
+    if: >-
+      always() && !cancelled() &&
+      (inputs.publish_target == 'appstore' ||
+       (needs.release.result == 'success' && inputs.publish_target != 'github'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve existing GitHub package version
+        env:
+          VERSION_REQUESTED: ${{ inputs.publish_target == 'appstore' && inputs.version || '' }}
+          BUILT_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION_REQUESTED:-${BUILT_VERSION:-$(tr -d '[:space:]' < ictrek.app/VERSION)}}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid published version"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download published GitHub package
+        run: |
+          set -euo pipefail
+          mkdir -p ictrek.app/dist
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" \
+            --pattern "v-octop_${VERSION}_pull.tar" --dir ictrek.app/dist
+          test -s "ictrek.app/dist/v-octop_${VERSION}_pull.tar"
+
+      - name: Open App Store publishing tunnel
+        env:
+          APPSTORE_IP: ${{ secrets.APPSTORE_IP }}
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${APPSTORE_IP:-}" || -z "${APPSTORE_TOKEN:-}" ]]; then
+            echo "::error::App Store credentials are not configured."
+            echo "Set APPSTORE_IP and APPSTORE_TOKEN to publish automatically."
+            exit 1
+          fi
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          for attempt in 1 2 3; do
+            if ssh-keyscan -T 10 -H -p 32222 "$APPSTORE_IP" >> "$HOME/.ssh/known_hosts"; then
+              break
+            fi
+            [[ "$attempt" != 3 ]] || { echo "::error::App Store SSH endpoint unavailable; GitHub Release is already published."; exit 1; }
+            sleep 2
+          done
+
+          askpass="$RUNNER_TEMP/vos-appstore-askpass.sh"
+          cat > "$askpass" <<'EOF'
+          #!/bin/sh
+          printf '%s\n' "$APPSTORE_TOKEN"
+          EOF
+          chmod 700 "$askpass"
+          export SSH_ASKPASS="$askpass"
+          export SSH_ASKPASS_REQUIRE=force
+          export DISPLAY=:0
+
+          control_socket="$RUNNER_TEMP/vos-appstore-ssh.sock"
+
+          ssh \
+            -M \
+            -S "$control_socket" \
+            -f \
+            -N \
+            -L 18899:127.0.0.1:18090 \
+            -p 32222 \
+            -o ConnectTimeout=10 \
+            -o ConnectionAttempts=2 \
+            -o BatchMode=no \
+            -o ExitOnForwardFailure=yes \
+            -o PreferredAuthentications=password \
+            -o PubkeyAuthentication=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
+            tunneluser@"$APPSTORE_IP" </dev/null
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --connect-timeout 3 --max-time 3 -fsS "http://127.0.0.1:18899/api/health" >/dev/null; then
+              ready=true
+              break
+            fi
+            if ! ssh -S "$control_socket" -O check -p 32222 tunneluser@"$APPSTORE_IP" >/dev/null 2>&1; then
+              echo "VOS App Store SSH tunnel exited before becoming ready." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          [[ "$ready" == true ]] || { echo "VOS App Store SSH tunnel did not become ready." >&2; exit 1; }
+
 
       - name: Publish package to VOS App Store
         run: |
