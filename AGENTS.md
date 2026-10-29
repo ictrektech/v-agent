@@ -339,7 +339,7 @@ User-facing datetime display and cron/scheduling defaults MUST use the server ti
 - Document non-obvious fields with `Field(..., description="…")`; name models clearly.
 - Spot-check `/api/docs` after API changes — a route that renders as an empty card or untyped blob is unfinished.
 
-**Cross-platform tests:** Octop CI runs on both Linux and Windows, so tests must not assume a single platform:
+**VOS test targets:** This fork runs Linux CI for its VOS containers; Windows CI and upstream third-party credential probes are disabled. Keep existing portability guards when synchronizing upstream tests:
 
 - Guard POSIX-only behavior with the repo convention `@pytest.mark.skipif(os.name != "posix", reason="…")`; prefer a module-level `posix_only = pytest.mark.skipif(os.name != "posix", reason="…")` alias. Use `pytest.mark.skipif(os.name == "nt", reason="…")` when a case is Linux/macOS-only for a different reason (e.g. forbidden path characters).
 - Do not hard-code POSIX paths (`/`, `/proc`, `/etc`, `/root`, `/usr/bin/…`, `~` → HOME) in assertions that run on every platform — they resolve differently on Windows (e.g. `/` → `D:\`). Prefer opaque mock tokens via `tests.support.fakes.fake_bin_path("tool")` (uses `pathlib` / `os.sep`) when stubbing `shutil.which` / `resolve_binary`.
@@ -403,7 +403,7 @@ Boundary rules are in [§5](#5-module-boundaries). Additionally:
 5. Build only affected images with explicit architecture/sheets. Publish independent `v-Octop` images and Feishu columns; do not replace v-harness images. Verify publication and recorded tags.
 6. Run `ictrek.app/scripts/update_version.sh` locally after image publication. It creates only the VOS trigger tag; GitHub Actions creates the public version, package and App Store publication. Confirm results, then push the final VAI submodule reference.
 
-Upstream publication workflows are retained as `.yml.upstream`. Use `UPSTREAM` to synchronize source without restoring their release policy.
+Only Linux VOS CI, CodeQL security checks and the VOS release workflow remain active. Upstream Windows/live-provider checks, issue automation and publication workflows are retained as `.yml.upstream`. Use `UPSTREAM` to synchronize source without restoring their release policy.
 
 ## 11. Communication
 
