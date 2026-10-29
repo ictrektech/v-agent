@@ -45,6 +45,8 @@ import {
   type HitlSessionPolicy,
 } from "../utils/hitlSessionPolicy";
 
+const EMPTY_MODELS: ResolvedModel[] = [];
+
 export function useChatComposerResources(
   resolvedAgentId: string | null | undefined,
   activeThreadId?: string | null,
@@ -91,8 +93,16 @@ export function useChatComposerResources(
       default_open?: boolean;
     }[]
   >([]);
-  const [availableModels, setAvailableModels] = useState<ResolvedModel[]>([]);
-  const [modelsReady, setModelsReady] = useState(false);
+  const [modelCatalog, setModelCatalog] = useState<{
+    agentId: string | null | undefined;
+    models: ResolvedModel[];
+  } | null>(null);
+  const modelsReady =
+    modelCatalog !== null && modelCatalog.agentId === resolvedAgentId;
+  const availableModels =
+    modelCatalog && modelCatalog.agentId === resolvedAgentId
+      ? modelCatalog.models
+      : EMPTY_MODELS;
   const [activeModelRef, setActiveModelRef] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [preferredModel, setPreferredModel] = useState<string | null>(null);
@@ -375,28 +385,23 @@ export function useChatComposerResources(
 
   useEffect(() => {
     let cancelled = false;
-    let loading = false;
-    let loaded = false;
-    setModelsReady(false);
-    const loadModels = async () => {
-      if (cancelled || loading) return;
-      loading = true;
-      try {
-        const data = await providerApi.listResolvedModels(resolvedAgentId);
-        if (!cancelled) {
-          setAvailableModels(data);
-          loaded = true;
-        }
-      } catch {
-        if (!cancelled && !loaded) setAvailableModels([]);
-      } finally {
-        loading = false;
-        if (!cancelled) setModelsReady(true);
-      }
+    let latestRequest = 0;
+    setModelCatalog(null);
+    const loadModels = () => {
+      const request = ++latestRequest;
+      void providerApi
+        .listResolvedModels(resolvedAgentId)
+        .then((data) => {
+          if (!cancelled && request === latestRequest) {
+            setModelCatalog({ agentId: resolvedAgentId, models: data });
+          }
+        })
+        // An unavailable catalog is not proof that a saved model was disabled.
+        .catch(() => undefined);
     };
-    void loadModels();
+    loadModels();
     const onFocus = () => {
-      if (document.visibilityState === "visible") void loadModels();
+      if (document.visibilityState === "visible") loadModels();
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
@@ -404,8 +409,8 @@ export function useChatComposerResources(
     return () => {
       cancelled = true;
       window.clearInterval(timer);
-      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
     };
   }, [resolvedAgentId]);
 
@@ -506,6 +511,37 @@ export function useChatComposerResources(
     },
     [activeThreadId, availableModels, modelReasoning, resolvedAgentId],
   );
+
+  // Clear a stale choice only after this expert's catalog loaded successfully.
+  // Persist Auto so reopening the thread cannot restore the disabled model.
+  useEffect(() => {
+    if (!modelsReady) return;
+    const local = activeThreadId
+      ? conversationOverrides[activeThreadId]
+      : undefined;
+    const autoFallback = remoteBridge ? null : preferredModel;
+    const model = local
+      ? local.model
+      : stickyModel || expertDefaultModel || autoFallback || null;
+    if (
+      model &&
+      !availableModels.some(
+        (item) => `${item.provider_name}/${item.model}` === model,
+      )
+    ) {
+      handleModelChange(null);
+    }
+  }, [
+    activeThreadId,
+    stickyModel,
+    expertDefaultModel,
+    preferredModel,
+    remoteBridge,
+    conversationOverrides,
+    availableModels,
+    modelsReady,
+    handleModelChange,
+  ]);
 
   const handleReasoningChange = useCallback(
     (mode: "auto" | "enabled" | "disabled", effort: string | null) => {

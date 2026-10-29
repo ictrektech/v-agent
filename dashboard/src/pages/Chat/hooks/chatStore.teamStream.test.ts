@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getSnapshot,
   ingestHarnessChunk,
@@ -12,9 +12,11 @@ const SESSION = "test-team-stream";
 describe("team member live stream", () => {
   afterEach(() => {
     removeSession(SESSION);
+    vi.unstubAllGlobals();
   });
 
   beforeEach(() => {
+    vi.stubGlobal("BASE_URL", "");
     setSessionTeamRoom(SESSION, true);
   });
 

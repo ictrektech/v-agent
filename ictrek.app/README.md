@@ -49,3 +49,9 @@ GitHub Release publication and App Store distribution are separate jobs. Packagi
 To retry store distribution after maintenance, run `VOS Pull Package Release` manually with `publish_target=appstore` and `version=0.0.6` (or the required existing version). It downloads that exact GitHub asset; it does not rebuild images, repackage from newer Feishu rows, overwrite GitHub assets or bump the version. `publish_target=github` publishes only GitHub; the default `all` also attempts store distribution.
 
 交付媒体的预览链接使用会话内副本，避免原始临时路径变化导致破图。旧会话的绝对路径预览失败时，前端通过既有鉴权下载接口重试，保留原有用户与路径权限检查。
+
+## Upstream synchronization (2026-10-29)
+
+Merged TencentCloud/Octop `develop` at `44c22434` (9 commits beyond the existing integration base; `main` has no newer commits). This brings chat-history reconciliation, disabled-model recovery, channel draft/QR isolation, forwarded OAuth ports, long-code wrapping and the RAGFlow connector. VOS identity isolation, model polling, media delivery, branding and release ownership are preserved.
+
+Reviewed v-harness 0.1.19: adapted inline Image Studio result Markdown, PhotoCraft preview/coordinate/session discipline and concise delivery. Its high-level PhotoCraft plugin tools differ from our native MCP tools and are not copied. HybRAG already has a managed connector; its separate Q&A skill is not reintroduced.

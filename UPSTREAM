@@ -14,3 +14,8 @@ Their retained license is gateway/LICENSE.v-harness.
 Local upstream remote: git remote add upstream https://github.com/TencentCloud/Octop.git
 
 Additional adaptation reference: ictrektech/v-harness 1363fc734d (VOS 0.1.12), specifically its MIT-licensed per-user PhotoCraft capability proxy and tests. PhotoCraft MCP protocol reference: ictrektech/photocraft 2ede23993 (0.10.0-vos.4), docs/vos-integration.md.
+
+Latest synchronization: upstream/develop 44c22434b090cb78d3a4a2d6fad786e7bbc95863 (2026-10-29).
+upstream/main remains at the original VOS integration base above.
+v-harness adaptation review: 73619167c3 (0.1.19), image result delivery and
+PhotoCraft preview/session discipline; retain native v-Octop capability tools.

@@ -23,7 +23,7 @@ if [[ -f "$STAMP_DIR/verified-source" && "$(cat "$STAMP_DIR/verified-source")" =
   exit 0
 fi
 rsync -az --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard --exclude=ictrek.app/dist ./ "$HOST:dev/repos/v-octop/"
-ssh "$HOST" bash -s <<'REMOTE'
+ssh "$HOST" bash -s -- "${PYTEST_JOBS:-4}" <<'REMOTE'
 set -euo pipefail
 mkdir -p "$HOME/dev/build/v-octop-check/source"
 rsync -a --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard "$HOME/dev/repos/v-octop/" "$HOME/dev/build/v-octop-check/source/"
@@ -32,7 +32,7 @@ cd "$HOME/dev/build/v-octop-check/source"
 export UV_NO_SYNC=1
 # The shared virtualenv may be editable-installed from an older build directory.
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
-make all PYTEST_JOBS=4
+make all PYTEST_JOBS="$1"
 node --test gateway/*.test.mjs
 .venv/bin/python -m compileall -q vos
 for script in bin/entrypoint bin/va-jail bin/va-userctl bin/va-file build_image.sh ictrek.app/scripts/*.sh; do bash -n "$script"; done

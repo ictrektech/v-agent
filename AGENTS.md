@@ -37,6 +37,20 @@ Apply the VAI repository instructions together with this module guide. User inst
 One Python wheel: FastAPI backend + React dashboard + Click CLI.
 No external queue. No required services beyond an LLM provider.
 
+### Runtime libraries
+
+Octop hosts four libraries. Put the change in the library that owns the behavior. This repo only wires users, the control-plane database, HTTP, CLI, dashboard, and cron.
+
+| Change | Repository |
+|--------|------------|
+| Agent loop, tools, skills, backends, middleware; turn wiring for memory and `browser_use` | [octop-harness](https://github.com/TencentCloud/octop-harness) |
+| IM platform protocol, media upload, group activation | [octop-gateway](https://github.com/TencentCloud/octop-gateway) |
+| Memory capture, recall, ranking, schema, storage | [octop-memory](https://github.com/TencentCloud/octop-memory) |
+| Chrome CDP, profiles, DOM, `browser_tool` | [octop-browser](https://github.com/TencentCloud/octop-browser) |
+| Users, auth, threads, cron, experts, dashboard | this repo |
+
+Do not copy that behavior into `src/octop/`. Follow the library's `AGENTS.md`. When the library releases, bump its pin in `pyproject.toml`.
+
 ## 3. Tech stack
 
 | Layer | Technology |

@@ -3,7 +3,7 @@ import { artifactUrl } from '../../artifacts.mjs';
 // Image Studio CLI: one-shot generation, job polling, output download, and model preparation.
 // Zero dependencies; requests go through the global fetch implementation of the host Node runtime.
 
-import { createWriteStream, mkdirSync, readFileSync, statSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { request as httpRequest } from 'node:http';
 import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
@@ -368,7 +368,10 @@ async function downloadOutputs(connection, job, outDir, only) {
     }
     const target = join(directory, name)
     await pipeline(Readable.fromWeb(response.body), createWriteStream(target))
-    files.push({ filename: name, path: target, url: artifactUrl(target), bytes: statSync(target).size })
+    const urlForFile = artifactUrl(target)
+    const markdown = /\.(png|jpe?g|webp|gif)$/i.test(name) && urlForFile
+      ? `![${name.replace(/[\[\]\r\n]/g, '_')}](${urlForFile})` : undefined
+    files.push({ filename: name, path: target, url: urlForFile, markdown, bytes: statSync(target).size })
   }
   return { job_id: job.job_id, directory, files }
 }
