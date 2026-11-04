@@ -68,6 +68,14 @@ try {
     assert.equal(identity.subject, access_token);
     assert.equal((await fetch(base + prefix + '/api/users', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' })).status, 403);
 
+    for (const path of ['/api/auth/mfa/totp/begin', '/api/auth/passkey/login/options', '/api/settings/webauthn']) {
+      assert.equal((await fetch(base + prefix + path, { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: '{}' })).status, 403, 'VOS owns account security: ' + path);
+    }
+    const claims = JSON.parse(Buffer.from(session.access_token.split('.')[1], 'base64url'));
+    assert.equal(claims.purpose, 'access', 'runtime tokens must declare their access purpose');
+    assert.equal(claims.mfa_version, 0);
+    assert.equal(claims.password_version, 0);
+
     logins.push({ cookie, session });
   }
   assert.notEqual(logins[0].session.namespace, logins[1].session.namespace);

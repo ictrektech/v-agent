@@ -184,7 +184,7 @@ async def photocraft_import(file_path: str) -> dict:
     return await asyncio.to_thread(_import, file_path)
 
 
-def _export(output_file):
+def _export(output_file, expects_transparency=False):
     target = Path(output_file).expanduser().resolve()
     name = "v-octop-" + secrets.token_hex(8) + "-" + target.name
     saved = _checked(
@@ -201,21 +201,34 @@ def _export(output_file):
         )
         response.raise_for_status()
         target.write_bytes(response.content)
-    return {
+    result = {
         "output_file": str(target),
         "bytes": target.stat().st_size,
         "document": saved,
     }
+    if expects_transparency:
+        from PIL import Image
+
+        with Image.open(target) as image:
+            transparent = image.convert("RGBA").getchannel("A").getextrema()[0] < 255
+        result["has_transparent_pixels"] = transparent
+        if not transparent:
+            result["warning"] = (
+                "The exported image has no transparent pixels. "
+                "Verify the selection and mask before claiming the cutout is complete."
+            )
+    return result
 
 
 @mcp.tool()
-async def photocraft_export(output_file: str) -> dict:
+async def photocraft_export(output_file: str, expects_transparency: bool = False) -> dict:
     """Export the active PhotoCraft document to a user-chosen workspace file.
 
     The filename extension selects PNG, PSD or another supported native format.
     The parent directory must already exist. Existing output files are replaced.
+    For cutouts, set expects_transparency to inspect actual exported alpha pixels.
     """
-    return await asyncio.to_thread(_export, output_file)
+    return await asyncio.to_thread(_export, output_file, expects_transparency)
 
 
 if __name__ == "__main__":

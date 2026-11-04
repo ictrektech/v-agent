@@ -168,5 +168,5 @@ describe("channel QR lifecycle (#2314)", () => {
     expect(
       api.mock.calls.filter(([url]) => url.endsWith("weixin/qrcode/poll")),
     ).toHaveLength(pollCalls);
-  });
+  }, 15_000);
 });

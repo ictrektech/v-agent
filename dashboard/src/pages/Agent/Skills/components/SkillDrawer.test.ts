@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildSkillMarkdown,
   isValidSkillName,
@@ -67,3 +67,10 @@ describe("SkillDrawer emoji metadata", () => {
     expect(metadata).toEqual([{ key: "octop.requires.bins", value: "git" }]);
   });
 });
+
+// These suites exercise text/metadata helpers, not the browser PDF renderer.
+vi.mock("react-pdf", () => ({
+  Document: () => null,
+  Page: () => null,
+  pdfjs: { GlobalWorkerOptions: { workerSrc: "" } },
+}));

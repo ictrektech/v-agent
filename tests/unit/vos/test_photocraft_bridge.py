@@ -128,3 +128,19 @@ def test_workspace_import_and_export_use_raw_file_bytes(upstream, tmp_path):
     exported = load()._export(str(output))
     assert output.read_bytes() == source.read_bytes()
     assert exported["bytes"] == source.stat().st_size
+
+
+@pytest.mark.parametrize("mode,alpha", [("RGB", 255), ("RGBA", 255), ("RGBA", 0), ("P", 0)])
+def test_cutout_export_checks_pixels_not_only_alpha_channel(upstream, tmp_path, mode, alpha):
+    from PIL import Image
+
+    load, _, _, _ = upstream
+    source, output = tmp_path / "input.png", tmp_path / "output.png"
+    image = Image.new("RGBA", (2, 2), (20, 40, 60, alpha)).convert(mode)
+    if mode == "P":
+        image.info["transparency"] = 0
+    image.save(source)
+    load()._import(str(source))
+    exported = load()._export(str(output), expects_transparency=True)
+    assert exported["has_transparent_pixels"] is (alpha < 255)
+    assert ("warning" in exported) is (alpha == 255)

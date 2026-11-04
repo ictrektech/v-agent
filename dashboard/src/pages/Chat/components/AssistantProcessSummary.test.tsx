@@ -71,7 +71,10 @@ describe("thinking display preference", () => {
       <AssistantProcessSummary split={split} isStreaming />,
     );
     expect(screen.queryByText("Thinking content")).not.toBeInTheDocument();
-    expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
     rerender(<AssistantProcessSummary split={split} isStreaming={false} />);
     expect(screen.queryByText("Thinking content")).not.toBeInTheDocument();
   });
@@ -187,6 +190,58 @@ describe("thinking display preference", () => {
       "aria-expanded",
       "false",
     );
+  });
+
+  it("holds a lone decision row until the reply settles", () => {
+    const split: AssistantTurnSplit = {
+      tools: [],
+      thinkings: [],
+      processSteps: [
+        {
+          kind: "decision",
+          notice: {
+            model: "laya",
+            empty: true,
+            parts: [],
+          },
+        },
+      ],
+      answerMessage: null,
+    };
+    const { rerender } = render(
+      <AssistantProcessSummary split={split} isStreaming />,
+    );
+    expect(
+      screen.queryByText(/决策模型|Decision model/),
+    ).not.toBeInTheDocument();
+    rerender(<AssistantProcessSummary split={split} isStreaming={false} />);
+    expect(screen.getByText(/决策模型|Decision model/)).toBeInTheDocument();
+  });
+
+  it("keeps a streaming decision inside the tool summary", () => {
+    const tool = runningToolSplit();
+    const split: AssistantTurnSplit = {
+      ...tool,
+      processSteps: [
+        {
+          kind: "decision",
+          notice: {
+            model: "laya",
+            empty: true,
+            parts: [],
+          },
+        },
+        ...tool.processSteps,
+      ],
+    };
+    render(<AssistantProcessSummary split={split} isStreaming />);
+    expect(screen.getByText(/正在调用工具|Calling tools/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/决策模型|Decision model/),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByText(/决策模型|Decision model/)).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
   it("keeps a decision row collapsed like other tools", () => {

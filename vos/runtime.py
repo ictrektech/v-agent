@@ -18,7 +18,7 @@ import uvicorn
 
 from octop.api.app import build_app
 from octop.infra.agents.manager import AgentCreateSpec
-from octop.infra.auth.tokens import sign_token
+from octop.infra.auth.tokens import PURPOSE_ACCESS, sign_token
 from octop.infra.server import OctopServer
 from octop.infra.vos import synchronize_hybrag_connector
 
@@ -251,11 +251,15 @@ async def main():
 
     def renew():
         user = server.user_manager.get(os.environ.get("VA_USERNAME", "vos"))
+        row = server.services.user_repo.get(user.id)
         token = sign_token(
             server.services.secret_repo.get("jwt"),
             sub=user.id,
             uname=user.username,
             role=user.role,
+            purpose=PURPOSE_ACCESS,
+            mfa_version=row.mfa_version,
+            password_version=row.password_version,
             ttl_seconds=86400 * 30,
         )
         temp = token_file.with_suffix(".tmp")

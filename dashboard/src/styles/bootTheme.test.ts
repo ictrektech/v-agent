@@ -50,8 +50,8 @@ describe("index.html boot theme", () => {
     );
   });
 
-  it("uses the white vertical mark in dark mode", () => {
-    expect(INDEX_HTML).toContain('src="%BASE_URL%logo_vertical_white.svg"');
+  it("uses the v-Octop mark in dark mode", () => {
+    expect(INDEX_HTML).toContain('src="%BASE_URL%v-octop.png"');
     expect(INDEX_HTML).toContain(
       'html[data-theme="dark"] .octop-boot-logo--dark',
     );

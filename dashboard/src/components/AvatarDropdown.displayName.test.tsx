@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -30,7 +30,17 @@ vi.mock("../context/LayoutModeContext", () => ({
 
 vi.mock("../api/modules/auth", () => ({
   authApi: {
-    me: () => Promise.resolve({ id: 1, username: "ada" }),
+    me: () => Promise.resolve({ id: 1, username: "ada", has_password: true }),
+    mfaStatus: () =>
+      Promise.resolve({
+        totp_verified: false,
+        passkeys: [],
+        recovery_remaining: 0,
+        is_last_factor: false,
+        can_enroll: true,
+        has_password: true,
+        sso_linked: false,
+      }),
     getOauthStatus: () => Promise.resolve({ providers: [] }),
     updateProfile: vi.fn(),
     logout: vi.fn(),
@@ -68,6 +78,20 @@ async function openSettings() {
 }
 
 describe("AvatarDropdown personal settings", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("delegates account security to VOS instead of offering local enrollment", async () => {
+    vi.stubEnv("VITE_VOS", "1");
+    const view = userEvent.setup();
+    render(<AvatarDropdown user={user} placement="sidebar" />);
+    await view.click(screen.getByRole("button", { name: /Ada/ }));
+    expect(
+      screen.queryByRole("button", { name: "account.security" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "account.settings" }),
+    ).toBeInTheDocument();
+  });
   it("puts save and cancel in the drawer footer", async () => {
     await openSettings();
 
@@ -97,29 +121,24 @@ describe("AvatarDropdown personal settings", () => {
     expect(screen.getByTestId("avatar-picker")).toBeInTheDocument();
   });
 
-  it("opens settings and password as right drawers", async () => {
+  it("opens account security with the password form in one drawer", async () => {
     const view = userEvent.setup();
     render(<AvatarDropdown user={user} placement="sidebar" />);
 
     await view.click(screen.getByRole("button", { name: /Ada/ }));
-    await view.click(screen.getByRole("button", { name: "account.settings" }));
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(document.querySelector(".ant-drawer-right")).toBeTruthy();
-    expect(document.querySelector(".ant-modal")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "account.changePassword" }),
+    ).not.toBeInTheDocument();
+    await view.click(screen.getByRole("button", { name: "account.security" }));
 
-    await view.click(screen.getByRole("button", { name: /close/i }));
-    await view.click(screen.getByRole("button", { name: /Ada/ }));
-    await view.click(
-      screen.getByRole("button", { name: "account.changePassword" }),
-    );
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(document.querySelector(".ant-drawer-right")).toBeTruthy();
-    expect(document.querySelector(".ant-modal")).toBeNull();
-
-    const cancel = screen.getByRole("button", { name: "common.cancel" });
-    const submit = screen.getByRole("button", {
-      name: "account.changePassword",
+    await waitFor(() => {
+      expect(screen.getByText("account.currentPassword")).toBeInTheDocument();
     });
-    expect(cancel.closest(".ant-drawer-footer")).toContainElement(submit);
+    expect(
+      await screen.findByRole("button", { name: "account.changePassword" }),
+    ).toBeInTheDocument();
+    expect(
+      document.querySelector(".ant-drawer-right, .octop-drawer-right"),
+    ).toBeTruthy();
   });
 });

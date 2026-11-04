@@ -808,8 +808,9 @@ async function proxyRequest(req, res) {
     json(res, 200, { subject: session.subject, username: record.username, login_method: 'VOS OIDC' });
     return;
   }
-  if ((req.method !== 'GET' && /^\/api\/(users|user-roles|user-groups|invites|sso)(?:\/|$)/.test(pathname)) ||
-      /^\/api\/auth\/(?:login|change-password|invite|sso)(?:\/|$)/.test(pathname)) {
+  if (pathname === '/api/settings/webauthn' ||
+      (req.method !== 'GET' && /^\/api\/(users|user-roles|user-groups|invites|sso)(?:\/|$)/.test(pathname)) ||
+      /^\/api\/auth\/(?:login|change-password|invite|sso|mfa|passkey)(?:\/|$)/.test(pathname)) {
     json(res, 403, { error: 'Accounts and login methods are managed by VOS.' });
     return;
   }

@@ -57,3 +57,9 @@ To retry store distribution after maintenance, run `VOS Pull Package Release` ma
 Merged TencentCloud/Octop `develop` at `44c22434` (9 commits beyond the existing integration base; `main` has no newer commits). This brings chat-history reconciliation, disabled-model recovery, channel draft/QR isolation, forwarded OAuth ports, long-code wrapping and the RAGFlow connector. VOS identity isolation, model polling, media delivery, branding and release ownership are preserved.
 
 Reviewed v-harness 0.1.19: adapted inline Image Studio result Markdown, PhotoCraft preview/coordinate/session discipline and concise delivery. Its high-level PhotoCraft plugin tools differ from our native MCP tools and are not copied. HybRAG already has a managed connector; its separate Q&A skill is not reintroduced.
+
+## Upstream synchronization (2026-11-04)
+
+Reviewed v-harness 0.1.23: adapted its exact painted-outline selection guidance and cutout verification to the native PhotoCraft bridge. Cutout exports can now check actual transparent pixels (including palette transparency and fully opaque RGBA) and report an ineffective mask. Existing tenant homes and sandbox layout remain compatible; the v-harness v2 jail and service panel are not drop-in components for Octop.
+
+Merged upstream `main` at `a40f54a8` (`1.0.3b2`, 6 new commits). Login branding, VOS identity isolation, model discovery and custom provider settings, concise replies and media delivery remain fork-owned. Runtime access tokens now carry the purpose and account-version claims required by upstream authentication. Local MFA/passkey setup is hidden and blocked in VOS mode because VOS manages accounts and sign-in. The new upstream PR-author automation is archived; only the three VOS workflows stay active.

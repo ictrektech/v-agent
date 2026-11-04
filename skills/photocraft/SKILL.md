@@ -15,6 +15,8 @@ description: 使用当前 VOS 用户的 PhotoCraft 编辑图片、操作图层�
 
 用户提供的矩形坐标按其声明的单位和原始边界使用，不扩大范围，不凭空创造选区。局部处理应先建选区或蒙版，再执行调整，最后预览验证。不要把整图处理宣称为局部处理。
 
+用户画出的闭合轮廓用于抠图时，按原始笔迹建立路径，再转为选区；从命令目录确认 `path.set`、`path.toSelection` 的可用性与参数。保留轮廓内侧，令外侧透明；彩色笔迹不等于主体颜色选区。边缘细化保持原始边界（目录支持时设置 `shiftEdge: 0`），仅在用户要求时扩大或收缩。抠图导出时设置 `photocraft_export(..., expects_transparency=True)`；若返回透明像素检查失败，检查选区和蒙版后再交付，不能把全不透明图片当作成功抠图。
+
 原生服务提供文档、命令、预览和导出工具，不提供桌面窗口控制或生成式修图。生成和补绘使用 V-Scheduler/Image Studio；PhotoCraft 用于像素、图层和选区编辑。服务不可用时明确报告，不能虚构编辑或产物。
 
 实现参考 v-harness 0.1.12 的 PhotoCraft 用户能力代理，以及 PhotoCraft 的 `docs/vos-integration.md`；工具直接来自 PhotoCraft MCP，而非 v-harness 专用插件。
