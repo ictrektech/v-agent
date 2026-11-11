@@ -71,7 +71,7 @@ async def test_im_call_merges_default_open_mcp_servers() -> None:
 
     assert events
     agent_manager.merge_turn_mcp_servers.assert_called_once_with(
-        7, None, apply_defaults=True, extra_defaults=[]
+        7, None, apply_defaults=True, extra_defaults=[], agent_owner_id=None
     )
     agent_manager.prepare_chat_mcp.assert_awaited_once()
     assert captured["request"]["mcp_servers"] == ["docs__1"]
@@ -233,7 +233,7 @@ async def test_dashboard_request_trusts_explicit_opt_out() -> None:
     )
     assert "mcp_servers" not in request
     agent_manager.merge_turn_mcp_servers.assert_called_once_with(
-        1, [], apply_defaults=False, extra_defaults=[]
+        1, [], apply_defaults=False, extra_defaults=[], agent_owner_id=None
     )
 
 
@@ -291,7 +291,7 @@ async def test_dashboard_request_attaches_knowledge_base_ids_without_prepending(
         meta=msg.metadata or {},
     )
 
-    content = request["messages"][0]["content"]
+    content = request["messages"][0].content
     assert content == "question"
     configurable = request.get("configurable") or {}
     assert configurable["knowledge_base_ids"] == ["kb-1"]
@@ -353,10 +353,12 @@ async def test_vos_capabilities_survive_empty_optional_connector_selection(monke
         usage_repo=None,
         gateway=None,
     )
-    names = await processor._resolve_turn_mcp_servers(agent_id="a1", user_id=1, explicit=[])
-    assert names == ["vos-apps", "photocraft"]
+    resolved = await processor._resolve_turn_mcp_servers(agent_id="a1", user_id=1, explicit=[])
+    assert resolved is not None
+    assert resolved.harness == ["vos-apps", "photocraft"]
+    assert resolved.shown == resolved.harness
     manager.prepare_chat_mcp.assert_awaited_once_with(
         "a1",
-        names,
+        resolved.harness,
         connector_user_id=1,
     )

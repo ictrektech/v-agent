@@ -69,6 +69,7 @@ export function useChatComposerResources(
   stickyReasoningEffort?: string | null,
   stickyConversationMode?: ConversationMode | null,
   stickyHitlPolicy?: HitlSessionPolicy | null,
+  persistThreadSettings = true,
 ) {
   const user = useCurrentUser();
   const currentUserId = user?.id ?? null;
@@ -166,26 +167,21 @@ export function useChatComposerResources(
     if (isNewSession) composerTouchedRef.current = false;
   }, [isNewSession]);
 
-  // No thread override: show the expert default. A local account preference
-  // fills Auto only for experts on this Octop. A remote Auto stays unset so
-  // the turn omits ``model`` and the peer resolves its own default.
+  // The chat picker shows an explicit choice only: this thread's override, or
+  // the expert's default model. Account preferred model is an auto-route
+  // priority on the server and stays unselected here (Auto).
   useEffect(() => {
     const local = activeThreadId
       ? conversationOverrides[activeThreadId]
       : undefined;
-    const autoFallback = remoteBridge ? null : preferredModel;
     setSelectedModel(
-      local
-        ? local.model
-        : stickyModel || expertDefaultModel || autoFallback || null,
+      local ? local.model : stickyModel || expertDefaultModel || null,
     );
   }, [
     resolvedAgentId,
     activeThreadId,
     stickyModel,
     expertDefaultModel,
-    preferredModel,
-    remoteBridge,
     conversationOverrides,
   ]);
 
@@ -554,6 +550,7 @@ export function useChatComposerResources(
         }));
       }
       if (
+        persistThreadSettings &&
         resolvedAgentId &&
         activeThreadId &&
         !isPendingThread(activeThreadId)
@@ -565,24 +562,30 @@ export function useChatComposerResources(
         });
       }
     },
-    [activeThreadId, availableModels, modelReasoning, resolvedAgentId],
+    [
+      activeThreadId,
+      availableModels,
+      modelReasoning,
+      persistThreadSettings,
+      resolvedAgentId,
+    ],
   );
 
-  // Clear a stale choice only after this expert's catalog loaded successfully.
-  // Persist Auto so reopening the thread cannot restore the disabled model.
+  // Clear a saved thread override that this catalog no longer contains, and
+  // persist Auto so reopening the thread cannot restore that disabled model.
+  // The expert's own default stays selected even when the viewer's catalog
+  // omits it — shared and peer experts must still show that default.
   useEffect(() => {
     if (!modelsReady) return;
     const local = activeThreadId
       ? conversationOverrides[activeThreadId]
       : undefined;
-    const autoFallback = remoteBridge ? null : preferredModel;
-    const model = local
-      ? local.model
-      : stickyModel || expertDefaultModel || autoFallback || null;
+    const override = local ? local.model : stickyModel || null;
     if (
-      model &&
+      override &&
+      override !== expertDefaultModel &&
       !availableModels.some(
-        (item) => `${item.provider_name}/${item.model}` === model,
+        (item) => `${item.provider_name}/${item.model}` === override,
       )
     ) {
       handleModelChange(null);
@@ -591,8 +594,6 @@ export function useChatComposerResources(
     activeThreadId,
     stickyModel,
     expertDefaultModel,
-    preferredModel,
-    remoteBridge,
     conversationOverrides,
     availableModels,
     modelsReady,
@@ -614,6 +615,7 @@ export function useChatComposerResources(
         }));
       }
       if (
+        persistThreadSettings &&
         resolvedAgentId &&
         activeThreadId &&
         !isPendingThread(activeThreadId)
@@ -624,7 +626,7 @@ export function useChatComposerResources(
         });
       }
     },
-    [activeThreadId, resolvedAgentId, selectedModel],
+    [activeThreadId, persistThreadSettings, resolvedAgentId, selectedModel],
   );
 
   const handleConversationModeChange = useCallback(
@@ -638,6 +640,7 @@ export function useChatComposerResources(
         );
       }
       if (
+        persistThreadSettings &&
         (options?.persist ?? true) &&
         resolvedAgentId &&
         activeThreadId &&
@@ -648,7 +651,7 @@ export function useChatComposerResources(
         });
       }
     },
-    [activeThreadId, resolvedAgentId],
+    [activeThreadId, persistThreadSettings, resolvedAgentId],
   );
 
   const handleHitlPolicyChange = useCallback(
@@ -659,6 +662,7 @@ export function useChatComposerResources(
         syncSessionHitlPolicy(activeThreadId, next);
       }
       if (
+        persistThreadSettings &&
         (options?.persist ?? true) &&
         resolvedAgentId &&
         activeThreadId &&
@@ -669,7 +673,7 @@ export function useChatComposerResources(
         });
       }
     },
-    [activeThreadId, resolvedAgentId],
+    [activeThreadId, persistThreadSettings, resolvedAgentId],
   );
 
   return {
@@ -689,6 +693,7 @@ export function useChatComposerResources(
     availableModels,
     modelsReady,
     activeModelRef,
+    preferredModel,
     handleConnectorsChange,
     handleKnowledgeBaseIdsChange,
   };

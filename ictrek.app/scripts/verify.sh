@@ -25,11 +25,15 @@ fi
 rsync -az --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard --exclude=ictrek.app/dist ./ "$HOST:dev/repos/v-octop/"
 ssh "$HOST" bash -s -- "${PYTEST_JOBS:-4}" <<'REMOTE'
 set -euo pipefail
-mkdir -p "$HOME/dev/build/v-octop-check/source"
+mkdir -p "$HOME/dev/build/v-octop-check/"{source,tmp,uv-cache,npm-cache}
 rsync -a --delete --exclude=.git --exclude=.venv --exclude=node_modules --exclude=src/octop/dashboard "$HOME/dev/repos/v-octop/" "$HOME/dev/build/v-octop-check/source/"
 cd "$HOME/dev/build/v-octop-check/source"
 # Reuse the locked dependency environment prepared on this build host.
 export UV_NO_SYNC=1
+export TMPDIR="$HOME/dev/build/v-octop-check/tmp"
+export UV_CACHE_DIR="$HOME/dev/build/v-octop-check/uv-cache"
+export npm_config_cache="$HOME/dev/build/v-octop-check/npm-cache"
+export PYTHONDONTWRITEBYTECODE=1
 # The shared virtualenv may be editable-installed from an older build directory.
 export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
 make all PYTEST_JOBS="$1"
@@ -38,7 +42,7 @@ node --test gateway/*.test.mjs
 for script in bin/entrypoint bin/va-jail bin/va-userctl bin/va-file build_image.sh ictrek.app/scripts/*.sh; do bash -n "$script"; done
 cd dashboard
 VITE_VOS=1 VITE_BASE_PATH=/app/com.ictrek.v-octop/ npm run build
-docker run --rm --cpus=2 --memory=6g \
+docker run --rm --cpus=2 --memory=6g --user "$(id -u):$(id -g)" \
   --volume "$HOME/dev/build/v-octop-check/source:/work" --workdir /work/dashboard \
   --env NODE_OPTIONS=--max-old-space-size=4096 \
   swr.cn-southwest-2.myhuaweicloud.com/ictrek/node:22-bookworm-slim-amd \

@@ -121,6 +121,8 @@ export interface ConnectorProbeResult {
   status_code?: number;
   oauth?: {
     available: boolean;
+    /** The authorization server has no dynamic registration: needs `oauth_client`. */
+    client_required?: boolean;
     issuer?: string;
     resource?: string;
   };
@@ -140,6 +142,17 @@ export interface CustomMcpOAuthPreview {
   expires_at?: number;
 }
 
+/** Pre-registered OAuth app for servers without dynamic client registration. */
+export interface CustomMcpOAuthClient {
+  client_id: string;
+  /** Write-only: omit to keep the saved secret. */
+  client_secret?: string;
+  has_client_secret?: boolean;
+  scope?: string;
+  authorization_endpoint?: string;
+  token_endpoint?: string;
+}
+
 export interface CustomMcpServerSpec {
   transport: CustomMcpTransport;
   url?: string;
@@ -154,6 +167,7 @@ export interface CustomMcpServerSpec {
   default_open?: boolean;
   shared?: boolean;
   oauth?: CustomMcpOAuthPreview;
+  oauth_client?: CustomMcpOAuthClient;
 }
 
 export type OAuthStartTarget =

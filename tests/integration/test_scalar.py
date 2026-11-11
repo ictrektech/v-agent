@@ -19,7 +19,7 @@ async def test_api_docs_endpoint(tmp_octop_home: Path) -> None:
             r = c.get("/api/docs")
             assert r.status_code == 200
             assert "text/html" in r.headers["content-type"]
-            assert "/api/openapi.json" in r.text
+            assert "./openapi.json" in r.text
             spec = c.get("/api/openapi.json")
             assert spec.status_code == 200
             assert spec.json()["info"]["title"] == "Octop API"
